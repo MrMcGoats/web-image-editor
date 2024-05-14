@@ -84,9 +84,7 @@ impl Component for App {
 						let input: HtmlInputElement = e.target_unchecked_into();
 						Self::upload_files(input.files())
 					})} />
-				<MouseMoveComponent id="photo_move" style="">
 					{ for self.files.iter().map(App::view_file) }
-				</MouseMoveComponent>
 			</div>
 		}
 	}
@@ -94,13 +92,13 @@ impl Component for App {
 
 impl App {
 	fn view_file(file: &FileDetails) -> Html {
+		let style = format!("background: url({}); background-position: center; background-size: 100% 100%; background-repeat: no-repeat; width: 100%; height: 100%", format!("data:{};base64,{}", file.file_type, STANDARD.encode(&file.data)));
+
 		html! {
-			<div class="preview-tile">
-				<p class="preview-name">{ format!("{}", file.name) }</p>
-				<div class="preview-media">
-					<img src={ format!("data:{};base64,{}", file.file_type, STANDARD.encode(&file.data)) } type={file.file_type.clone()} />
+			<MouseMoveComponent id={ format!("phote-move-{}", file.name.clone()) } style="width: 100px; height: 100px; border: 1px solid black;">
+				<div class="preview-media" {style} >
 				</div>
-			</div>
+			</MouseMoveComponent>
 		}
 	}
 
@@ -132,6 +130,9 @@ fn MouseMoveComponent(props: &Props) -> Html {
 
 	let dragging = use_state(|| false);
 
+	let z_index = use_state(|| 1);
+	let old_z_index = use_state(|| 1);
+
 	let onmousemove = {
 		let mousex = mousex.clone();
 		let mousey = mousey.clone();
@@ -155,34 +156,53 @@ fn MouseMoveComponent(props: &Props) -> Html {
 
 	let onmousedown = {
 		let dragging = dragging.clone();
+		let z_index = z_index.clone();
+		let old_z_index = old_z_index.clone();
 		move |_: MouseEvent| {
 			dragging.set(true);
+			
+			// TODO: Save previous z-index and set it back when mouseup
+			// Can't figure out how to actually get the current z-index
+			old_z_index.set(1);
+			z_index.set(1000);
 		}
 	};
 
 	let onmouseup = {
 		let dragging = dragging.clone();
+		let z_index = z_index.clone();
+		let old_z_index = old_z_index.clone();
 		move |_: MouseEvent| {
 			dragging.set(false);
+
+			z_index.set(*old_z_index);
 		}
 	};
 
 	let onmouseleave = {
 		let dragging = dragging.clone();
+		let z_index = z_index.clone();
+		let old_z_index = old_z_index.clone();
 		move |_: MouseEvent| {
 			dragging.set(false);
+
+			z_index.set(*old_z_index);
 		}
 	};
 
 	let onmouseenter = {
 		let dragging = dragging.clone();
+		let z_index = z_index.clone();
+		let old_z_index = old_z_index.clone();
 		move |_: MouseEvent| {
 			dragging.set(false);
+
+			z_index.set(*old_z_index);
 		}
 	};
 
 	html! {
-		<div ref={div_node_ref} {onmousemove} {onmousedown} {onmouseup} {id} {onmouseenter} {onmouseleave} style={format!("position: absolute; left: {}px; top: {}px; {}", *mousex, *mousey, extra_style)}>
+		<div ref={div_node_ref} {onmousemove} {onmousedown} {onmouseup} {id} {onmouseenter} {onmouseleave} style={format!("position: absolute; left: {}px; top: {}px; z-index: {}; {}", *mousex, *mousey, *z_index, extra_style)}>
 			{ props.children.clone() }
 		</div>
 	}
