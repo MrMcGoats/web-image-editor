@@ -1,0 +1,9 @@
+[package]
+name = "web-image-editor"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+yew = { git = "https://github.com/yewstack/yew/", features = ["csr"] }
+gloo-events = "0.1"
+web-sys = "0.3.69"
