@@ -12,6 +12,8 @@ struct Props {
 	id: AttrValue,
 	style: AttrValue,
 	children: Children,
+	width: String,
+	height: String,
 }
 
 struct FileDetails {
@@ -95,9 +97,8 @@ impl App {
 		let style = format!("background: url({}); background-position: center; background-size: 100% 100%; background-repeat: no-repeat; width: 100%; height: 100%", format!("data:{};base64,{}", file.file_type, STANDARD.encode(&file.data)));
 
 		html! {
-			<MouseMoveComponent id={ format!("phote-move-{}", file.name.clone()) } style="width: 100px; height: 100px; border: 1px solid black;">
-				<div class="preview-media" {style} >
-				</div>
+			<MouseMoveComponent id={ format!("phote-move-{}", file.name.clone()) } width="100px" height="100px" style="border: 1px solid black;">
+				<div class="preview-media" {style} />
 			</MouseMoveComponent>
 		}
 	}
@@ -125,10 +126,19 @@ fn MouseMoveComponent(props: &Props) -> Html {
 	let id = props.id.clone();
 	let extra_style = props.style.clone();
 
+	let width = use_state(|| props.width.clone());
+	let height = use_state(|| props.height.clone());
+
+	// Used to position the div
 	let mousex = use_state(|| 0);
 	let mousey = use_state(|| 0);
 
+	// Saves where the mouse was clicked for resizing purposes
+	let clickx = use_state(|| 0);
+	let clicky = use_state(|| 0);
+
 	let dragging = use_state(|| false);
+	let resizing = use_state(|| false);
 
 	let z_index = use_state(|| 1);
 	let old_z_index = use_state(|| 1);
@@ -136,31 +146,106 @@ fn MouseMoveComponent(props: &Props) -> Html {
 	let onmousemove = {
 		let mousex = mousex.clone();
 		let mousey = mousey.clone();
+
+		let clickx = clickx.clone();
+		let clicky = clicky.clone();
+
 		let dragging = dragging.clone();
+		let resizing = resizing.clone();
+
+		let width = width.clone();
+		let height = height.clone();
+
 		let div_node_ref = div_node_ref.clone();
 		move |event: MouseEvent| {
-			if !*dragging {
-				return;
+			if *dragging {
+				let x = event.client_x();
+				let y = event.client_y();
+
+				// Cacluate mousex and mousey such that the mouse will be in the middle of the div
+				let x1 = x - div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 / 2;
+
+				let y1 = y - div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 / 2;
+
+				mousex.set(x1);
+				mousey.set(y1);
+			} else if *resizing {
+				// If we're in the corner, resize the div and maintain aspect ratio
+				// If we're on an edge, resize in that direction
+				let x = event.client_x();
+				let y = event.client_y();
+
+				// A corner is a location within 10 pixels of two edges
+				let mut corner = false;
+				// Check all 4 corners
+				if x > div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 - 10 && y > div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 - 10 {
+					corner = true;
+				} else if x < 10 && y < 10 {
+					corner = true;
+				} else if x > div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 - 10 && y < 10 {
+					corner = true;
+				} else if x < 10 && y > div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 - 10 {
+					corner = true;
+				}
+
+				if corner {
+					// Maintian aspect ratio
+					
+					let x_diff = x - *clickx;
+					let y_diff = y - *clicky;
+
+					let new_width = div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 + x_diff;
+					let new_height = div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 + y_diff;
+
+					let aspect_ratio = div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as f32 / div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as f32;
+
+					if x_diff.abs() > y_diff.abs() {
+						let new_height = (new_width as f32 / aspect_ratio) as i32;
+						height.set(format!("{}px", new_height));
+						width.set(format!("{}px", new_width));
+					} else {
+						let new_width = (new_height as f32 * aspect_ratio) as i32;
+						width.set(format!("{}px", new_width));
+						height.set(format!("{}px", new_height));
+					}
+				} else {
+					// If we're near a top or bottom edge, only adjust height
+					// If we're near a left or right edge, only adjust width
+					if x < 10 || x > div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 - 10 {
+						let x_diff = x - *clickx;
+						let new_width = div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 + x_diff;
+						width.set(format!("{}px", new_width));
+					} else if y < 10 || y > div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 - 10 {
+						let y_diff = y - *clicky;
+						let new_height = div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 + y_diff;
+						height.set(format!("{}px", new_height));
+					}
+				}
 			}
-			let x = event.client_x();
-			let y = event.client_y();
-
-			// Cacluate mousex and mousey such that the mouse will be in the middle of the div
-			let x1 = x - div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 / 2;
-			let y1 = y - div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 / 2;
-
-			mousex.set(x1);
-			mousey.set(y1);
 		}
 	};
 
 	let onmousedown = {
 		let dragging = dragging.clone();
+		let resizing = resizing.clone();
+		
+		let clickx = clickx.clone();
+		let clicky = clicky.clone();
+
 		let z_index = z_index.clone();
 		let old_z_index = old_z_index.clone();
-		move |_: MouseEvent| {
-			dragging.set(true);
-			
+		let div_node_ref = div_node_ref.clone();
+		move |event: MouseEvent| {
+			// If mouse is in a corner of the div, resize, otherwise drag
+			if event.client_x() > div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 - 10 && event.client_y() > div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 - 10 {
+				resizing.set(true);
+			} else {
+				dragging.set(true);
+			}
+
+			clickx.set(event.client_x());
+			clicky.set(event.client_y());
+
 			// TODO: Save previous z-index and set it back when mouseup
 			// Can't figure out how to actually get the current z-index
 			old_z_index.set(1);
@@ -170,10 +255,12 @@ fn MouseMoveComponent(props: &Props) -> Html {
 
 	let onmouseup = {
 		let dragging = dragging.clone();
+		let resizing = resizing.clone();
 		let z_index = z_index.clone();
 		let old_z_index = old_z_index.clone();
 		move |_: MouseEvent| {
 			dragging.set(false);
+			resizing.set(false);
 
 			z_index.set(*old_z_index);
 		}
@@ -181,28 +268,27 @@ fn MouseMoveComponent(props: &Props) -> Html {
 
 	let onmouseleave = {
 		let dragging = dragging.clone();
+		let resizing = resizing.clone();
 		let z_index = z_index.clone();
 		let old_z_index = old_z_index.clone();
 		move |_: MouseEvent| {
 			dragging.set(false);
+			resizing.set(false);
 
 			z_index.set(*old_z_index);
 		}
 	};
 
 	let onmouseenter = {
-		let dragging = dragging.clone();
 		let z_index = z_index.clone();
 		let old_z_index = old_z_index.clone();
 		move |_: MouseEvent| {
-			dragging.set(false);
-
 			z_index.set(*old_z_index);
 		}
 	};
 
 	html! {
-		<div ref={div_node_ref} {onmousemove} {onmousedown} {onmouseup} {id} {onmouseenter} {onmouseleave} style={format!("position: absolute; left: {}px; top: {}px; z-index: {}; {}", *mousex, *mousey, *z_index, extra_style)}>
+		<div ref={div_node_ref} {onmousemove} {onmousedown} {onmouseup} {id} {onmouseenter} {onmouseleave} style={format!("position: absolute; left: {}px; top: {}px; z-index: {}; width: {}; height: {}; {}", *mousex, *mousey, *z_index, *width, *height, extra_style)}>
 			{ props.children.clone() }
 		</div>
 	}
