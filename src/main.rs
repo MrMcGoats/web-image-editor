@@ -215,13 +215,29 @@ fn MouseMoveComponent(props: &Props) -> Html {
 				} else {
 					// If we're near a top or bottom edge, only adjust height
 					// If we're near a left or right edge, only adjust width
-					if x < width_2 || x > div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 - width_2 {
+					if x < width_2  {
+						let x_diff = x - *clickx;
+						let new_width = div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 - x_diff;
+						width.set(format!("{}px", new_width));
+
+						// Move the div to the left
+						let x1 = x - div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 / 2;
+						mousex.set(x1);
+					} else if x > div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 - width_2 {
 						let x_diff = x - *clickx;
 						let new_width = div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 + x_diff;
 						width.set(format!("{}px", new_width));
-					} else if y < height_2 || y > div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 - height_2 {
+					} else if y < height_2 {
 						let y_diff = y - *clicky;
 						let new_height = div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 + y_diff;
+						height.set(format!("{}px", new_height));
+
+						// Move the div up
+						let y1 = y - div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 / 2;
+						mousey.set(y1);
+					} else if y > div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 - height_2 {
+						let y_diff = y - *clicky;
+						let new_height = div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 - y_diff;
 						height.set(format!("{}px", new_height));
 					}
 				}
@@ -247,8 +263,10 @@ fn MouseMoveComponent(props: &Props) -> Html {
 			// If mouse is near the side of the div resize, otherwise drag
 			if event.client_x() < width_2 || event.client_x() > div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 - width_2 || event.client_y() < height_2 || event.client_y() > div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 - height_2 {
 				resizing.set(true);
+				dragging.set(false);
 			} else {
 				dragging.set(true);
+				resizing.set(false);
 			}
 			
 
