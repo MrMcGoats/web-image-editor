@@ -175,16 +175,20 @@ fn MouseMoveComponent(props: &Props) -> Html {
 				let x = event.client_x();
 				let y = event.client_y();
 
+				// Calculate 2% of the width and height
+				let width_2 = div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 * 2 / 100;
+				let height_2 = div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 * 2 / 100;
+
 				// A corner is a location within 10 pixels of two edges
 				let mut corner = false;
 				// Check all 4 corners
-				if x > div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 - 10 && y > div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 - 10 {
+				if x > div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 - width_2 && y > div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 - height_2 {
 					corner = true;
-				} else if x < 10 && y < 10 {
+				} else if x < width_2 && y < height_2 {
 					corner = true;
-				} else if x > div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 - 10 && y < 10 {
+				} else if x > div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 - width_2 && y < height_2 {
 					corner = true;
-				} else if x < 10 && y > div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 - 10 {
+				} else if x < width_2 && y > div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 - height_2 {
 					corner = true;
 				}
 
@@ -211,11 +215,11 @@ fn MouseMoveComponent(props: &Props) -> Html {
 				} else {
 					// If we're near a top or bottom edge, only adjust height
 					// If we're near a left or right edge, only adjust width
-					if x < 10 || x > div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 - 10 {
+					if x < width_2 || x > div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 - width_2 {
 						let x_diff = x - *clickx;
 						let new_width = div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 + x_diff;
 						width.set(format!("{}px", new_width));
-					} else if y < 10 || y > div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 - 10 {
+					} else if y < height_2 || y > div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 - height_2 {
 						let y_diff = y - *clicky;
 						let new_height = div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 + y_diff;
 						height.set(format!("{}px", new_height));
@@ -236,12 +240,17 @@ fn MouseMoveComponent(props: &Props) -> Html {
 		let old_z_index = old_z_index.clone();
 		let div_node_ref = div_node_ref.clone();
 		move |event: MouseEvent| {
-			// If mouse is in a corner of the div, resize, otherwise drag
-			if event.client_x() > div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 - 10 && event.client_y() > div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 - 10 {
+			// Calculate 2% of the width and height
+			let width_2 = div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 * 2 / 100;
+			let height_2 = div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 * 2 / 100;
+
+			// If mouse is near the side of the div resize, otherwise drag
+			if event.client_x() < width_2 || event.client_x() > div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 - width_2 || event.client_y() < height_2 || event.client_y() > div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 - height_2 {
 				resizing.set(true);
 			} else {
 				dragging.set(true);
 			}
+			
 
 			clickx.set(event.client_x());
 			clicky.set(event.client_y());
