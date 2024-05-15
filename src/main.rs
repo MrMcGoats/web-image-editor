@@ -340,7 +340,7 @@ fn MouseMoveComponent(props: &Props) -> Html {
 			let height_2 = div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 * 2 / 100;
 
 			// If mouse is near the side of the div resize, otherwise drag
-			if event.client_x() < width_2 || event.client_x() > div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 - width_2 || event.client_y() < height_2 || event.client_y() > div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 - height_2 {
+			if false && (event.client_x() < width_2 || event.client_x() > div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 - width_2 || event.client_y() < height_2 || event.client_y() > div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 - height_2) { // TODO Remove first condition to reenable
 				resizing.set(true);
 				dragging.set(false);
 			} else {
