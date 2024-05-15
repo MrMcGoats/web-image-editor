@@ -214,7 +214,7 @@ fn MouseMoveComponent(props: &Props) -> Html {
 		} else if tmp_height == 0 {
 			// Set height to maintain aspect ratio
 			let aspect_ratio = file.width as f32 / file.height as f32;
-			let new_height = (tmp_width as f32 / aspect_ratio) as i32;
+			let new_height = (tmp_width as f32 * aspect_ratio) as i32;
 			tmp_height = new_height;
 		}
 
@@ -415,7 +415,7 @@ fn MouseMoveComponent(props: &Props) -> Html {
 	};
 
 	html! {
-		<div ref={div_node_ref} {onmousemove} {onmousedown} {onmouseup} {id} {onmouseenter} {onmouseleave} style={format!("position: relative; left: {}px; top: {}px; z-index: {}; width: {}px; max-width: {}px; height: {}px; max-height: {}px; {}; {}", *mousex, *mousey, *z_index, *width, *height, *width, *height, bgstyle, extra_style)} >
+		<div ref={div_node_ref} {onmousemove} {onmousedown} {onmouseup} {id} {onmouseenter} {onmouseleave} style={format!("position: absolute; left: {}px; top: {}px; z-index: {}; width: {}px; max-width: {}px; height: {}px; max-height: {}px; {}; {}", *mousex, *mousey, *z_index, *width, *height, *width, *height, bgstyle, extra_style)} >
 			{ props.children.clone() }
 		</div>
 	}
@@ -432,7 +432,7 @@ fn EditableCanvas(props: &CanvasProps) -> Html {
 	let height = props.height.unwrap_or(800);
 
 	html! {
-		<div ref={canvas_node_ref} {id} style={format!("width: {}px; height: {}px; max-width: {}px; max-height: {}px; overflow: hidden; {}", width, height, width, height, extra_style)} >
+		<div ref={canvas_node_ref} {id} style={format!("position: relative; width: {}px; height: {}px; max-width: {}px; max-height: {}px; overflow: hidden; {}", width, height, width, height, extra_style)} >
 			{ props.children.clone() }
 		</div>
 	}
