@@ -397,7 +397,7 @@ fn MouseMoveComponent(props: &Props) -> Html {
 	};
 
 	html! {
-		<div ref={div_node_ref} {onmousemove} {onmousedown} {onmouseup} {id} {onmouseenter} {onmouseleave} style={format!("position: absolute; left: {}px; top: {}px; z-index: {}; width: {}px; height: {}px; {}; {}", *mousex, *mousey, *z_index, *width, *height, bgstyle, extra_style)} >
+		<div ref={div_node_ref} {onmousemove} {onmousedown} {onmouseup} {id} {onmouseenter} {onmouseleave} style={format!("position: absolute; left: {}px; top: {}px; z-index: {}; width: {}px; max-width: {}px; height: {}px; max-height: {}px; {}; {}", *mousex, *mousey, *z_index, *width, *height, *width, *height, bgstyle, extra_style)} >
 			{ props.children.clone() }
 		</div>
 	}
