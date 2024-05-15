@@ -188,14 +188,15 @@ fn MouseMoveComponent(props: &Props) -> Html {
 			tmp_width = file.width;
 			tmp_height = file.height;
 		} else if tmp_width == 0 {
+			// We know tmp_height is not 0 because if it was the above if statement would have been true
 			// Set width to maintain aspect ratio
 			let aspect_ratio = file.width as f32 / file.height as f32;
-			let new_width = (file.height as f32 * aspect_ratio) as i32;
+			let new_width = (tmp_height as f32 * aspect_ratio) as i32;
 			tmp_width = new_width;
 		} else if tmp_height == 0 {
 			// Set height to maintain aspect ratio
 			let aspect_ratio = file.width as f32 / file.height as f32;
-			let new_height = (file.width as f32 * aspect_ratio) as i32;
+			let new_height = (tmp_width as f32 / aspect_ratio) as i32;
 			tmp_height = new_height;
 		}
 
