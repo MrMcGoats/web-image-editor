@@ -640,6 +640,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "imagesize"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "029d73f573d8e8d63e6d5020011d3255b28c3ba85d6cf870a07184ed23de9284"
+
+[[package]]
 name = "implicit-clone"
 version = "0.4.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1156,6 +1162,7 @@ version = "0.1.0"
 dependencies = [
  "base64",
  "gloo 0.11.0",
+ "imagesize",
  "js-sys",
  "web-sys",
  "yew",

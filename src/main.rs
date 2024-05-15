@@ -9,21 +9,32 @@ use gloo::file::callbacks::FileReader;
 
 #[derive(PartialEq, Properties)]
 struct Props {
+	#[prop_or_default]
 	id: AttrValue,
+	#[prop_or_default]
+	class: AttrValue,
+	#[prop_or_default]
 	style: AttrValue,
+	#[prop_or_default]
 	children: Children,
-	width: String,
-	height: String,
+	#[prop_or(None)]
+	width: Option<i32>,
+	#[prop_or(None)]
+	height: Option<i32>,
+	file: FileDetails,
 }
 
+#[derive(Clone, PartialEq)]
 struct FileDetails {
 	name: String,
 	file_type: String,
 	data: Vec<u8>,
+	width: i32,
+	height: i32,
 }
 
 pub enum Msg {
-	Loaded(String, String, Vec<u8>),
+	Loaded(String, String, Vec<u8>, i32, i32),
 	Files(Vec<File>)
 }
 
@@ -45,11 +56,13 @@ impl Component for App {
 
 	fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
 		match msg {
-			Msg::Loaded(file_name, file_type, data) => {
+			Msg::Loaded(file_name, file_type, data, width, height) => {
 				self.files.push(FileDetails {
 					name: file_name.clone(),
 					file_type,
 					data,
+					width,
+					height,
 				});
 				self.readers.remove(&file_name);
 				true
@@ -64,10 +77,26 @@ impl Component for App {
 						let file_name = file_name.clone();
 
 						gloo::file::callbacks::read_as_bytes(&file, move |res| {
+							// Get width and height of image
+							let data = res.expect("failed to read file");
+							let resolution_res = imagesize::blob_size(&data);
+							let mut width = 100;
+							let mut height = 100;
+							if let Ok(resolution) = resolution_res {
+								width = resolution.width as i32;
+								height = resolution.height as i32;
+							} else {
+								console::error_1(&format!("Failed to get resolution of image: {}. Using default", file_name).into());
+							}
+
+							console::log_1(&format!("Image size ({}): {}x{}", file_name, width, height).into());
+
 							link.send_message(Msg::Loaded(
 									file_name,
 									file_type,
-									res.expect("failed to read file"),
+									data,
+									width,
+									height,
 							  ))
 						})
 					};
@@ -94,12 +123,10 @@ impl Component for App {
 
 impl App {
 	fn view_file(file: &FileDetails) -> Html {
-		let style = format!("background: url({}); background-position: center; background-size: 100% 100%; background-repeat: no-repeat; width: 100%; height: 100%", format!("data:{};base64,{}", file.file_type, STANDARD.encode(&file.data)));
+		
 
 		html! {
-			<MouseMoveComponent id={ format!("phote-move-{}", file.name.clone()) } width="100px" height="100px" style="border: 1px solid black;">
-				<div class="preview-media" {style} />
-			</MouseMoveComponent>
+			<MouseMoveComponent file={file.clone()} id={ format!("phote-move-{}", file.name.clone()) } width=250 style="border: 1px solid black;" />
 		}
 	}
 
@@ -125,9 +152,60 @@ fn MouseMoveComponent(props: &Props) -> Html {
 
 	let id = props.id.clone();
 	let extra_style = props.style.clone();
+	let file = props.file.clone();
 
-	let width = use_state(|| props.width.clone());
-	let height = use_state(|| props.height.clone());
+	let first_load = use_state(|| true);
+
+	let bgstyle = format!(
+		"background: url({}); background-position: center; background-size: 100% 100%; background-repeat: no-repeat",
+		format!(
+			"data:{};base64,{}",
+			file.clone().file_type,
+			STANDARD.encode(&file.clone().data)
+		)
+	);
+	
+	let width = use_state(|| 0);
+	let height = use_state(|| 0);
+
+	if *first_load {
+		// Need these because we can't check the new value of width and height. They'll always read
+		// as 0
+		let mut tmp_width: i32 = 0;
+		let mut tmp_height: i32 = 0;
+		// Calculate size of the div based on what was passed in
+		if let Some(passed_width) = props.width {
+			tmp_width = passed_width;
+		}
+
+		if let Some(passed_height) = props.height {
+			tmp_height = passed_height;
+		}
+
+
+		// Now if the width and height are 0, set them to the actual image size
+		if tmp_width == 0 && tmp_height == 0 {
+			tmp_width = file.width;
+			tmp_height = file.height;
+		} else if tmp_width == 0 {
+			// Set width to maintain aspect ratio
+			let aspect_ratio = file.width as f32 / file.height as f32;
+			let new_width = (file.height as f32 * aspect_ratio) as i32;
+			tmp_width = new_width;
+		} else if tmp_height == 0 {
+			// Set height to maintain aspect ratio
+			let aspect_ratio = file.width as f32 / file.height as f32;
+			let new_height = (file.width as f32 * aspect_ratio) as i32;
+			tmp_height = new_height;
+		}
+
+
+		console::log_1(&format!("Got dimensions {}x{}", tmp_width, tmp_height).into());
+		width.set(tmp_width);
+		height.set(tmp_height);
+
+		first_load.set(false);
+	}
 
 	// Used to position the div
 	let mousex = use_state(|| 0);
@@ -205,12 +283,12 @@ fn MouseMoveComponent(props: &Props) -> Html {
 
 					if x_diff.abs() > y_diff.abs() {
 						let new_height = (new_width as f32 / aspect_ratio) as i32;
-						height.set(format!("{}px", new_height));
-						width.set(format!("{}px", new_width));
+						height.set(new_height);
+						width.set(new_width);
 					} else {
 						let new_width = (new_height as f32 * aspect_ratio) as i32;
-						width.set(format!("{}px", new_width));
-						height.set(format!("{}px", new_height));
+						width.set(new_width);
+						height.set(new_height);
 					}
 				} else {
 					// If we're near a top or bottom edge, only adjust height
@@ -218,7 +296,7 @@ fn MouseMoveComponent(props: &Props) -> Html {
 					if x < width_2  {
 						let x_diff = x - *clickx;
 						let new_width = div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 - x_diff;
-						width.set(format!("{}px", new_width));
+						width.set(new_width);
 
 						// Move the div to the left
 						let x1 = div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 + x_diff;
@@ -226,11 +304,11 @@ fn MouseMoveComponent(props: &Props) -> Html {
 					} else if x > div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 - width_2 {
 						let x_diff = x - *clickx;
 						let new_width = div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 + x_diff;
-						width.set(format!("{}px", new_width));
+						width.set(new_width);
 					} else if y < height_2 {
 						let y_diff = y - *clicky;
 						let new_height = div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 - y_diff;
-						height.set(format!("{}px", new_height));
+						height.set(new_height);
 
 						// Move the div up
 						let y1 = div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 + y_diff;
@@ -238,7 +316,7 @@ fn MouseMoveComponent(props: &Props) -> Html {
 					} else if y > div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 - height_2 {
 						let y_diff = y - *clicky;
 						let new_height = div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 + y_diff;
-						height.set(format!("{}px", new_height));
+						height.set(new_height);
 					}
 				}
 			}
@@ -318,7 +396,7 @@ fn MouseMoveComponent(props: &Props) -> Html {
 	};
 
 	html! {
-		<div ref={div_node_ref} {onmousemove} {onmousedown} {onmouseup} {id} {onmouseenter} {onmouseleave} style={format!("position: absolute; left: {}px; top: {}px; z-index: {}; width: {}; height: {}; {}", *mousex, *mousey, *z_index, *width, *height, extra_style)}>
+		<div ref={div_node_ref} {onmousemove} {onmousedown} {onmouseup} {id} {onmouseenter} {onmouseleave} style={format!("position: absolute; left: {}px; top: {}px; z-index: {}; width: {}px; height: {}px; {}; {}", *mousex, *mousey, *z_index, *width, *height, bgstyle, extra_style)} >
 			{ props.children.clone() }
 		</div>
 	}
