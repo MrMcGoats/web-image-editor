@@ -86,7 +86,7 @@ impl Component for App {
 						let input: HtmlInputElement = e.target_unchecked_into();
 						Self::upload_files(input.files())
 					})} />
-					{ for self.files.iter().map(App::view_file) }
+					{ for self.files.iter().rev().map(App::view_file) }
 			</div>
 		}
 	}
