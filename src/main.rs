@@ -221,7 +221,7 @@ fn MouseMoveComponent(props: &Props) -> Html {
 						width.set(format!("{}px", new_width));
 
 						// Move the div to the left
-						let x1 = x - div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 / 2;
+						let x1 = div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 + x_diff;
 						mousex.set(x1);
 					} else if x > div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 - width_2 {
 						let x_diff = x - *clickx;
@@ -229,15 +229,15 @@ fn MouseMoveComponent(props: &Props) -> Html {
 						width.set(format!("{}px", new_width));
 					} else if y < height_2 {
 						let y_diff = y - *clicky;
-						let new_height = div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 + y_diff;
+						let new_height = div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 - y_diff;
 						height.set(format!("{}px", new_height));
 
 						// Move the div up
-						let y1 = y - div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 / 2;
+						let y1 = div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 + y_diff;
 						mousey.set(y1);
 					} else if y > div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 - height_2 {
 						let y_diff = y - *clicky;
-						let new_height = div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 - y_diff;
+						let new_height = div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 + y_diff;
 						height.set(format!("{}px", new_height));
 					}
 				}
@@ -310,6 +310,9 @@ fn MouseMoveComponent(props: &Props) -> Html {
 		let z_index = z_index.clone();
 		let old_z_index = old_z_index.clone();
 		move |_: MouseEvent| {
+			dragging.set(false);
+			resizing.set(false);
+
 			z_index.set(*old_z_index);
 		}
 	};
