@@ -24,6 +24,22 @@ struct Props {
 	file: FileDetails,
 }
 
+#[derive(PartialEq, Properties)]
+struct CanvasProps {
+	#[prop_or_default]
+	id: AttrValue,
+	#[prop_or_default]
+	class: AttrValue,
+	#[prop_or_default]
+	style: AttrValue,
+	#[prop_or_default]
+	children: Children,
+	#[prop_or(None)]
+	width: Option<i32>,
+	#[prop_or(None)]
+	height: Option<i32>,
+}
+
 #[derive(Clone, PartialEq)]
 struct FileDetails {
 	name: String,
@@ -115,7 +131,9 @@ impl Component for App {
 						let input: HtmlInputElement = e.target_unchecked_into();
 						Self::upload_files(input.files())
 					})} />
-					{ for self.files.iter().rev().map(App::view_file) }
+					<EditableCanvas id="photo-canvas" style="border: 1px solid black;" >
+						{ for self.files.iter().rev().map(App::view_file) }
+					</EditableCanvas>
 			</div>
 		}
 	}
@@ -397,7 +415,24 @@ fn MouseMoveComponent(props: &Props) -> Html {
 	};
 
 	html! {
-		<div ref={div_node_ref} {onmousemove} {onmousedown} {onmouseup} {id} {onmouseenter} {onmouseleave} style={format!("position: absolute; left: {}px; top: {}px; z-index: {}; width: {}px; max-width: {}px; height: {}px; max-height: {}px; {}; {}", *mousex, *mousey, *z_index, *width, *height, *width, *height, bgstyle, extra_style)} >
+		<div ref={div_node_ref} {onmousemove} {onmousedown} {onmouseup} {id} {onmouseenter} {onmouseleave} style={format!("position: relative; left: {}px; top: {}px; z-index: {}; width: {}px; max-width: {}px; height: {}px; max-height: {}px; {}; {}", *mousex, *mousey, *z_index, *width, *height, *width, *height, bgstyle, extra_style)} >
+			{ props.children.clone() }
+		</div>
+	}
+}
+
+#[function_component]
+fn EditableCanvas(props: &CanvasProps) -> Html {
+	let canvas_node_ref = use_node_ref();
+
+	let id = props.id.clone();
+	let extra_style = props.style.clone();
+
+	let width = props.width.unwrap_or(800);
+	let height = props.height.unwrap_or(800);
+
+	html! {
+		<div ref={canvas_node_ref} {id} style={format!("width: {}px; height: {}px; max-width: {}px; max-height: {}px; overflow: hidden; {}", width, height, width, height, extra_style)} >
 			{ props.children.clone() }
 		</div>
 	}
