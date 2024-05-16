@@ -3,7 +3,7 @@ use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
 
 use yew::prelude::*;
-use web_sys::{MouseEvent, console, HtmlElement, HtmlInputElement, FileList};
+use web_sys::{MouseEvent, console, HtmlElement, HtmlInputElement, FileList, window};
 use gloo::file::File;
 use gloo::file::callbacks::FileReader;
 use wasm_bindgen::prelude::*;
@@ -183,15 +183,6 @@ fn MouseMoveComponent(props: &Props) -> Html {
 
 	let first_load = use_state(|| true);
 
-	let bgstyle = format!(
-		"background: url({}); background-position: center; background-size: 100% 100%; background-repeat: no-repeat",
-		format!(
-			"data:{};base64,{}",
-			file.clone().file_type,
-			STANDARD.encode(&file.clone().data)
-		)
-	);
-	
 	let width = use_state(|| 0);
 	let height = use_state(|| 0);
 
@@ -245,6 +236,7 @@ fn MouseMoveComponent(props: &Props) -> Html {
 
 	let dragging = use_state(|| false);
 	let resizing = use_state(|| false);
+	let on_edge = use_state(|| false);
 
 	let z_index = use_state(|| 1);
 	let old_z_index = use_state(|| 1);
@@ -258,102 +250,35 @@ fn MouseMoveComponent(props: &Props) -> Html {
 
 		let dragging = dragging.clone();
 		let resizing = resizing.clone();
+		let on_edge = on_edge.clone();
 
 		let width = width.clone();
 		let height = height.clone();
 
 		let div_node_ref = div_node_ref.clone();
 		move |event: MouseEvent| {
-			if *dragging {
-				let x = event.client_x();
-				let y = event.client_y();
-
-				// Cacluate mousex and mousey such that the mouse will be in the middle of the div
-				let x1 = x - div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 / 2;
-
-				let y1 = y - div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 / 2;
-
-				mousex.set(x1);
-				mousey.set(y1);
-			} else if *resizing {
-				// If we're in the corner, resize the div and maintain aspect ratio
-				// If we're on an edge, resize in that direction
-				let x = event.client_x();
-				let y = event.client_y();
-
-				// Calculate 2% of the width and height
-				let width_2 = div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 * 2 / 100;
-				let height_2 = div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 * 2 / 100;
-
-				// A corner is a location within 10 pixels of two edges
-				let mut corner = false;
-				// Check all 4 corners
-				if x > div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 - width_2 && y > div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 - height_2 {
-					corner = true;
-				} else if x < width_2 && y < height_2 {
-					corner = true;
-				} else if x > div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 - width_2 && y < height_2 {
-					corner = true;
-				} else if x < width_2 && y > div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 - height_2 {
-					corner = true;
-				}
-
-				if corner {
-					// Maintian aspect ratio
-					
-					let x_diff = x - *clickx;
-					let y_diff = y - *clicky;
-
-					let new_width = div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 + x_diff;
-					let new_height = div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 + y_diff;
-
-					let aspect_ratio = div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as f32 / div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as f32;
-
-					if x_diff.abs() > y_diff.abs() {
-						let new_height = (new_width as f32 / aspect_ratio) as i32;
-						height.set(new_height);
-						width.set(new_width);
-					} else {
-						let new_width = (new_height as f32 * aspect_ratio) as i32;
-						width.set(new_width);
-						height.set(new_height);
-					}
-				} else {
-					// If we're near a top or bottom edge, only adjust height
-					// If we're near a left or right edge, only adjust width
-					if x < width_2  {
-						let x_diff = x - *clickx;
-						let new_width = div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 - x_diff;
-						width.set(new_width);
-
-						// Move the div to the left
-						let x1 = div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 + x_diff;
-						mousex.set(x1);
-					} else if x > div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 - width_2 {
-						let x_diff = x - *clickx;
-						let new_width = div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 + x_diff;
-						width.set(new_width);
-					} else if y < height_2 {
-						let y_diff = y - *clicky;
-						let new_height = div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 - y_diff;
-						height.set(new_height);
-
-						// Move the div up
-						let y1 = div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 + y_diff;
-						mousey.set(y1);
-					} else if y > div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 - height_2 {
-						let y_diff = y - *clicky;
-						let new_height = div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 + y_diff;
-						height.set(new_height);
-					}
-				}
+			if !*dragging || *on_edge || *resizing {
+				return;
 			}
+			let x = event.client_x();
+			let y = event.client_y();
+
+			// Cacluate mousex and mousey such that the mouse will be in the middle of the div
+			//let x1 = x - div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 / 2;
+			//let y1 = y - div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 / 2;
+
+			let x1 = x - *clickx;
+			let y1 = y - *clicky;
+
+			mousex.set(x1);
+			mousey.set(y1);
 		}
 	};
 
 	let onmousedown = {
 		let dragging = dragging.clone();
 		let resizing = resizing.clone();
+		let on_edge = resizing.clone();
 		
 		let clickx = clickx.clone();
 		let clicky = clicky.clone();
@@ -362,22 +287,18 @@ fn MouseMoveComponent(props: &Props) -> Html {
 		let old_z_index = old_z_index.clone();
 		let div_node_ref = div_node_ref.clone();
 		move |event: MouseEvent| {
-			// Calculate 2% of the width and height
-			let width_2 = div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 * 2 / 100;
-			let height_2 = div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 * 2 / 100;
-
-			// If mouse is near the side of the div resize, otherwise drag
-			if false && (event.client_x() < width_2 || event.client_x() > div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 - width_2 || event.client_y() < height_2 || event.client_y() > div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 - height_2) { // TODO Remove first condition to reenable
-				resizing.set(true);
-				dragging.set(false);
-			} else {
-				dragging.set(true);
-				resizing.set(false);
+			if event.button() != 0 {
+				return;
 			}
-			
+
+			if *resizing || *on_edge {
+				return;
+			}
 
 			clickx.set(event.client_x());
 			clicky.set(event.client_y());
+
+			dragging.set(true);
 
 			// TODO: Save previous z-index and set it back when mouseup
 			// Can't figure out how to actually get the current z-index
@@ -413,6 +334,8 @@ fn MouseMoveComponent(props: &Props) -> Html {
 	};
 
 	let onmouseenter = {
+		let dragging = dragging.clone();
+		let resizing = resizing.clone();
 		let z_index = z_index.clone();
 		let old_z_index = old_z_index.clone();
 		move |_: MouseEvent| {
@@ -423,8 +346,317 @@ fn MouseMoveComponent(props: &Props) -> Html {
 		}
 	};
 
+	// Mouse events for each resizer
+	let on_top_left_resizer_move = {
+		let resizing = resizing.clone();
+		let mousex = mousex.clone();
+		let mousey = mousey.clone();
+		let clickx = clickx.clone();
+		let clicky = clicky.clone();
+		let width = width.clone();
+		let height = height.clone();
+		move |event: MouseEvent| {
+			if !*resizing {
+				return;
+			}
+
+			let x = event.client_x();
+			let y = event.client_y();
+
+			let x1 = x - *clickx;
+			let y1 = y - *clicky;
+
+			let new_width = *width - x1;
+			let new_height = *height - y1;
+
+			let x2 = *mousex + x1;
+			let y2 = *mousey + y1;
+
+			mousex.set(x2);
+			mousey.set(y2);
+			width.set(new_width);
+			height.set(new_height);
+		}
+	};
+
+	let on_top_right_resizer_move = {
+		let resizing = resizing.clone();
+		let mousex = mousex.clone();
+		let mousey = mousey.clone();
+		let clickx = clickx.clone();
+		let clicky = clicky.clone();
+		let width = width.clone();
+		let height = height.clone();
+		move |event: MouseEvent| {
+			if !*resizing {
+				return;
+			}
+
+			let x = event.client_x();
+			let y = event.client_y();
+
+			let x1 = x - *clickx;
+			let y1 = y - *clicky;
+
+			let new_width = *width + x1;
+			let new_height = *height - y1;
+
+			let x2 = *mousex;
+			let y2 = *mousey + y1;
+
+			mousex.set(x2);
+			mousey.set(y2);
+			width.set(new_width);
+			height.set(new_height);
+		}
+	};
+
+	let on_bottom_left_resizer_move = {
+		let resizing = resizing.clone();
+		let mousex = mousex.clone();
+		let mousey = mousey.clone();
+		let clickx = clickx.clone();
+		let clicky = clicky.clone();
+		let width = width.clone();
+		let height = height.clone();
+		move |event: MouseEvent| {
+			if !*resizing {
+				return;
+			}
+
+			let x = event.client_x();
+			let y = event.client_y();
+
+			let x1 = x - *clickx;
+			let y1 = y - *clicky;
+
+			let new_width = *width - x1;
+			let new_height = *height + y1;
+
+			let x2 = *mousex + x1;
+			let y2 = *mousey;
+
+			mousex.set(x2);
+			mousey.set(y2);
+			width.set(new_width);
+			height.set(new_height);
+		}
+	};
+
+	let on_bottom_right_resizer_move = {
+		let resizing = resizing.clone();
+		let mousex = mousex.clone();
+		let mousey = mousey.clone();
+		let clickx = clickx.clone();
+		let clicky = clicky.clone();
+		let width = width.clone();
+		let height = height.clone();
+		move |event: MouseEvent| {
+			if !*resizing {
+				return;
+			}
+
+			let x = event.client_x();
+			let y = event.client_y();
+
+			let x1 = x - *clickx;
+			let y1 = y - *clicky;
+
+			let new_width = *width + x1;
+			let new_height = *height + y1;
+
+			let x2 = *mousex;
+			let y2 = *mousey;
+
+			mousex.set(x2);
+			mousey.set(y2);
+			width.set(new_width);
+			height.set(new_height);
+		}
+	};
+
+	let on_top_resizer_move = {
+		let resizing = resizing.clone();
+		let mousex = mousex.clone();
+		let mousey = mousey.clone();
+		let clickx = clickx.clone();
+		let clicky = clicky.clone();
+		let width = width.clone();
+		let height = height.clone();
+		move |event: MouseEvent| {
+			if !*resizing {
+				return;
+			}
+
+			let y = event.client_y();
+
+			let y1 = y - *clicky;
+
+			let new_height = *height - y1;
+
+			let y2 = *mousey + y1;
+
+			mousey.set(y2);
+			height.set(new_height);
+		}
+	};
+
+	let on_bottom_resizer_move = {
+		let resizing = resizing.clone();
+		let mousex = mousex.clone();
+		let mousey = mousey.clone();
+		let clickx = clickx.clone();
+		let clicky = clicky.clone();
+		let width = width.clone();
+		let height = height.clone();
+		move |event: MouseEvent| {
+			if !*resizing {
+				return;
+			}
+
+			let y = event.client_y();
+
+			let y1 = y - *clicky;
+
+			let new_height = *height + y1;
+
+			let y2 = *mousey;
+
+			mousey.set(y2);
+			height.set(new_height);
+		}
+	};
+
+	let on_left_resizer_move = {
+		let resizing = resizing.clone();
+		let mousex = mousex.clone();
+		let mousey = mousey.clone();
+		let clickx = clickx.clone();
+		let clicky = clicky.clone();
+		let width = width.clone();
+		let height = height.clone();
+		move |event: MouseEvent| {
+			if !*resizing {
+				return;
+			}
+
+			let x = event.client_x();
+
+			let x1 = x - *clickx;
+
+			let new_width = *width - x1;
+
+			let x2 = *mousex + x1;
+
+			mousex.set(x2);
+			width.set(new_width);
+		}
+	};
+
+	let on_right_resizer_move = {
+		let resizing = resizing.clone();
+		let mousex = mousex.clone();
+		let mousey = mousey.clone();
+		let clickx = clickx.clone();
+		let clicky = clicky.clone();
+		let width = width.clone();
+		let height = height.clone();
+		move |event: MouseEvent| {
+			if !*resizing {
+				return;
+			}
+
+			let x = event.client_x();
+
+			let x1 = x - *clickx;
+
+			let new_width = *width + x1;
+
+			let x2 = *mousex;
+
+			mousex.set(x2);
+			width.set(new_width);
+		}
+	};
+
+	let on_resizer_click = {
+		let dragging = dragging.clone();
+		let resizing = resizing.clone();
+		let clickx = clickx.clone();
+		let clicky = clicky.clone();
+		move |event: MouseEvent| {
+			dragging.set(false);
+			resizing.set(true);
+
+			clickx.set(event.client_x());
+			clicky.set(event.client_y());
+		}
+	};
+
+	let on_resizer_unclick = {
+		let resizing = resizing.clone();
+		move |_: MouseEvent| {
+			resizing.set(false);
+		}
+	};
+
+	let on_resizer_leave = {
+		let resizing = resizing.clone();
+		let on_edge = on_edge.clone();
+		move |_: MouseEvent| {
+			resizing.set(false);
+			on_edge.set(false);
+			
+			console::log_1(&"Resizer left".into());
+		}
+	};
+
+	let on_resizer_enter = {
+		let resizing = resizing.clone();
+		let on_edge = on_edge.clone();
+		move |_: MouseEvent| {
+			resizing.set(false);
+			on_edge.set(true);
+
+			console::log_1(&"Resizer entered".into());
+		}
+	};
+
+
+
+	let bgstyle = format!(
+		"background: url({}); background-position: center; background-size: 100% 100%; background-repeat: no-repeat",
+		format!(
+			"data:{};base64,{}",
+			file.clone().file_type,
+			STANDARD.encode(&file.clone().data)
+		)
+	);
+	
+
+	let style = format!(
+		"position: absolute; left: {}px; top: {}px; z-index: {}; width: {}px; max-width: {}px; height: {}px; max-height: {}px; {}; {}",
+		*mousex,
+		*mousey,
+		*z_index,
+		*width,
+		*height,
+		*width,
+		*height,
+		bgstyle,
+		extra_style,
+	);
+
 	html! {
-		<div ref={div_node_ref} {onmousemove} {onmousedown} {onmouseup} {id} {onmouseenter} {onmouseleave} style={format!("position: absolute; left: {}px; top: {}px; z-index: {}; width: {}px; max-width: {}px; height: {}px; max-height: {}px; {}; {}", *mousex, *mousey, *z_index, *width, *height, *width, *height, bgstyle, extra_style)} >
+		<div ref={div_node_ref} {onmousemove} {onmousedown} {onmouseup} id={id.clone()} {onmouseenter} {onmouseleave} {style}>
+			<div onmousemove={on_top_left_resizer_move} onmousedown={on_resizer_click.clone()} onmouseup={on_resizer_unclick.clone()} onmouseenter={on_resizer_enter.clone()} onmouseleave={on_resizer_leave.clone()} class="image-resize-div corner-resize-div top-left" id={format!("{}-top-left-resizer", id.clone())} />
+			<div onmousemove={on_top_right_resizer_move} onmousedown={on_resizer_click.clone()} onmouseup={on_resizer_unclick.clone()} onmouseenter={on_resizer_enter.clone()} onmouseleave={on_resizer_leave.clone()} class="image-resize-div corner-resize-div top-right" id={format!("{}-top-right-resizer", id.clone())} />
+			<div onmousemove={on_bottom_left_resizer_move} onmousedown={on_resizer_click.clone()} onmouseup={on_resizer_unclick.clone()} onmouseenter={on_resizer_enter.clone()} onmouseleave={on_resizer_leave.clone()} class="image-resize-div corner-resize-div bottom-left" id={format!("{}-bottom-left-resizer", id.clone())} />
+			<div onmousemove={on_bottom_right_resizer_move} onmousedown={on_resizer_click.clone()} onmouseup={on_resizer_unclick.clone()} onmouseenter={on_resizer_enter.clone()} onmouseleave={on_resizer_leave.clone()} class="image-resize-div corner-resize-div bottom-right" id={format!("{}-bottom-right-resizer", id.clone())} />
+			<div onmousemove={on_top_resizer_move} onmousedown={on_resizer_click.clone()} onmouseup={on_resizer_unclick.clone()} onmouseenter={on_resizer_enter.clone()} onmouseleave={on_resizer_leave.clone()} class="image-resize-div edge-resize-div top" id={format!("{}-top-resizer", id.clone())} />
+			<div onmousemove={on_left_resizer_move} onmousedown={on_resizer_click.clone()} onmouseup={on_resizer_unclick.clone()} onmouseenter={on_resizer_enter.clone()} onmouseleave={on_resizer_leave.clone()} class="image-resize-div edge-resize-div left" id={format!("{}-bottom-resizer", id.clone())} />
+			<div onmousemove={on_right_resizer_move} onmousedown={on_resizer_click.clone()} onmouseup={on_resizer_unclick.clone()} onmouseenter={on_resizer_enter.clone()} onmouseleave={on_resizer_leave.clone()} class="image-resize-div edge-resize-div right" id={format!("{}-left-resizer", id.clone())} />
+			<div onmousemove={on_bottom_resizer_move} onmousedown={on_resizer_click.clone()} onmouseup={on_resizer_unclick.clone()} onmouseenter={on_resizer_enter.clone()} onmouseleave={on_resizer_leave.clone()} class="image-resize-div edge-resize-div bottom" id={format!("{}-right-resizer", id.clone())} />
 			{ props.children.clone() }
 		</div>
 	}
@@ -441,7 +673,7 @@ fn EditableCanvas(props: &CanvasProps) -> Html {
 	let height = props.height.unwrap_or(800);
 
 	html! {
-		<div ref={canvas_node_ref} {id} style={format!("position: relative; width: {}px; height: {}px; max-width: {}px; max-height: {}px; overflow: hidden; {}", width, height, width, height, extra_style)} >
+		<div ref={canvas_node_ref} {id} style={format!("position: absolute; width: {}px; height: {}px; max-width: {}px; max-height: {}px; overflow: hidden; {}", width, height, width, height, extra_style)} >
 			{ props.children.clone() }
 		</div>
 	}

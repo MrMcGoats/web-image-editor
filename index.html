@@ -11,6 +11,67 @@
                 });
             }
         </script>
+        <style>
+            .image-resize-div {
+                /*border: 1px solid black;*/
+                z-index: 10;
+            }
+            .edge-resize-div {
+                position: absolute;
+                /*background-color: blue;*/
+                z-index: 2;
+                width: 95%;
+                height: 95%;
+            }
+
+            .edge-resize-div.top {
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 5%; /* Set your desired height */
+            }
+            .edge-resize-div.right {
+                top: 0;
+                right: 0;
+                bottom: 0;
+                width: 5%; /* Set your desired width */
+            }
+            .edge-resize-div.bottom {
+                left: 0;
+                right: 0;
+                bottom: 0;
+                height: 5%; /* Set your desired height */
+            }
+            .edge-resize-div.left {
+                top: 0;
+                left: 0;
+                bottom: 0;
+                width: 5%; /* Set your desired width */
+            }
+            .corner-resize-div {
+                z-index: 3;
+                position: absolute;
+                width: 5%; /* Set your desired size */
+                height: 5%; /* Set your desired size */
+                /*background-color: red;*/
+            }
+            .corner-resize-div.top-left {
+                top: 0;
+                left: 0;
+            }
+            .corner-resize-div.top-right {
+                top: 0;
+                right: 0;
+            }
+            .corner-resize-div.bottom-right {
+                bottom: 0;
+                right: 0;
+            }
+            .corner-resize-div.bottom-left {
+                bottom: 0;
+                left: 0;
+            }
+        </style>
     </head>
     <body></body>
 </html>
