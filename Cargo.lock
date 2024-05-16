@@ -1164,6 +1164,7 @@ dependencies = [
  "gloo 0.11.0",
  "imagesize",
  "js-sys",
+ "wasm-bindgen",
  "web-sys",
  "yew",
 ]

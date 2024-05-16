@@ -3,6 +3,14 @@
     <head>
         <meta charset="utf-8">
         <title>Yew App</title>
+        <script type="text/javascript" src="https://html2canvas.hertzen.com/dist/html2canvas.min.js" async integrity="sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H" crossorigin="anonymous"></script>
+        <script type="text/javascript">
+            function capture(id) {
+                html2canvas(document.querySelector(id)).then(canvas => {
+                    document.body.appendChild(canvas)
+                });
+            }
+        </script>
     </head>
     <body></body>
 </html>

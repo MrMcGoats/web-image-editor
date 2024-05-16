@@ -6,6 +6,14 @@ use yew::prelude::*;
 use web_sys::{MouseEvent, console, HtmlElement, HtmlInputElement, FileList};
 use gloo::file::File;
 use gloo::file::callbacks::FileReader;
+use wasm_bindgen::prelude::*;
+
+// Javascript functions
+#[wasm_bindgen]
+extern "C" {
+	#[wasm_bindgen(js_name = capture)]
+	fn capture_div(id: &str);
+}
 
 #[derive(PartialEq, Properties)]
 struct Props {
@@ -130,10 +138,11 @@ impl Component for App {
 					onchange={ctx.link().callback(move |e: Event| {
 						let input: HtmlInputElement = e.target_unchecked_into();
 						Self::upload_files(input.files())
-					})} />
-					<EditableCanvas id="photo-canvas" style="border: 1px solid black;" >
-						{ for self.files.iter().rev().map(App::view_file) }
-					</EditableCanvas>
+				})} />
+				<button onclick={|_| capture_div("#photo-canvas")}>{"Save"}</button>
+				<EditableCanvas id="photo-canvas" style="border: 1px solid black;" >
+					{ for self.files.iter().rev().map(App::view_file) }
+				</EditableCanvas>
 			</div>
 		}
 	}
