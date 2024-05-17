@@ -66,6 +66,7 @@ pub fn MouseMoveComponent(props: &MouseMoveProps) -> Html {
 	let dragging = use_state(|| false);
 	let resizing = use_state(|| false);
 	let on_edge = use_state(|| false);
+	let on_corner = use_state(|| false);
 
 	let z_index = use_state(|| 1);
 	let old_z_index = use_state(|| 1);
@@ -304,8 +305,9 @@ pub fn MouseMoveComponent(props: &MouseMoveProps) -> Html {
 		let mousey = mousey.clone();
 		let clicky = clicky.clone();
 		let height = height.clone();
+		let on_corner = on_corner.clone();
 		move |event: MouseEvent| {
-			if !*resizing {
+			if !*resizing || *on_corner {
 				return;
 			}
 
@@ -327,8 +329,9 @@ pub fn MouseMoveComponent(props: &MouseMoveProps) -> Html {
 		let mousey = mousey.clone();
 		let clicky = clicky.clone();
 		let height = height.clone();
+		let on_corner = on_corner.clone();
 		move |event: MouseEvent| {
-			if !*resizing {
+			if !*resizing || *on_corner {
 				return;
 			}
 
@@ -350,8 +353,9 @@ pub fn MouseMoveComponent(props: &MouseMoveProps) -> Html {
 		let mousex = mousex.clone();
 		let clickx = clickx.clone();
 		let width = width.clone();
+		let on_corner = on_corner.clone();
 		move |event: MouseEvent| {
-			if !*resizing {
+			if !*resizing || *on_corner {
 				return;
 			}
 
@@ -373,8 +377,9 @@ pub fn MouseMoveComponent(props: &MouseMoveProps) -> Html {
 		let mousex = mousex.clone();
 		let clickx = clickx.clone();
 		let width = width.clone();
+		let on_corner = on_corner.clone();
 		move |event: MouseEvent| {
-			if !*resizing {
+			if !*resizing || *on_corner {
 				return;
 			}
 
@@ -427,6 +432,21 @@ pub fn MouseMoveComponent(props: &MouseMoveProps) -> Html {
 		move |_: MouseEvent| {
 			resizing.set(false);
 			on_edge.set(true);
+		}
+	};
+
+	// This is to deal with the fact that the edge and corner resizers overlap
+	let on_resizer_corner_enter = {
+		let on_corner = on_corner.clone();
+		move |_: MouseEvent| {
+			on_corner.set(true);
+		}
+	};
+
+	let on_resizer_corner_leave = {
+		let on_corner = on_corner.clone();
+		move |_: MouseEvent| {
+			on_corner.set(false);
 		}
 	};
 
