@@ -104,7 +104,7 @@ impl Component for App {
 						Self::upload_files(input.files())
 				})} />
 				<button onclick={|_| capture_div("#photo-canvas")}>{"Save"}</button>
-				<EditableCanvas id="photo-canvas" style="border: 1px solid black;" >
+				<EditableCanvas id="photo-canvas">
 					{ for self.files.iter().rev().map(App::view_file) }
 				</EditableCanvas>
 			</div>
