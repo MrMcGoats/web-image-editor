@@ -115,7 +115,7 @@ impl Component for App {
 impl App {
 	fn view_file(file: &FileDetails) -> Html {
 		html! {
-			<MovableImageComponent file={file.clone()} id={ format!("phote-move-{}", file.name.clone()) } width=250 style="border: 1px solid black;" />
+			<MovableImageComponent file={file.clone()} id={ format!("phote-move-{}", file.name.clone()) } class="image" width=250 />
 		}
 	}
 

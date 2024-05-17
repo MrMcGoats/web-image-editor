@@ -430,8 +430,6 @@ pub fn MouseMoveComponent(props: &MouseMoveProps) -> Html {
 		}
 	};
 
-
-
 	let style = format!(
 		"position: absolute; left: {}px; top: {}px; z-index: {}; width: {}px; max-width: {}px; height: {}px; max-height: {}px; {}",
 		*mousex,
@@ -444,16 +442,29 @@ pub fn MouseMoveComponent(props: &MouseMoveProps) -> Html {
 		extra_style,
 	);
 
+	// Styles to keep the resizers in the corners and edges
+	let resizer_size_percent = 5;
+	let edge_resizer_style = "position: absolute; z-index: 2;";
+	let corner_resizer_style = format!("position: absolute; z-index: 3; width: {}%; height: {}%;", resizer_size_percent, resizer_size_percent);
+	let edge_resizer_top_style = format!("{}top: 0; left: 0; right: 0; width: {}%; height: {}%", edge_resizer_style, 100 - resizer_size_percent, resizer_size_percent);
+	let edge_resizer_bottom_style = format!("{}bottom: 0; left: 0; right: 0; width: {}%; height: {}%", edge_resizer_style, 100 - resizer_size_percent, resizer_size_percent);
+	let edge_resizer_left_style = format!("{}top: 0; bottom: 0; left: 0; width: {}%; height: {}%", edge_resizer_style, resizer_size_percent, 100 - resizer_size_percent);
+	let edge_resizer_right_style = format!("{}top: 0; bottom: 0; right: 0; width: {}%; height: {}%", edge_resizer_style, resizer_size_percent, 100 - resizer_size_percent);
+	let corner_resizer_top_left_style = format!("{}top: 0; left: 0;", corner_resizer_style);
+	let corner_resizer_top_right_style = format!("{}top: 0; right: 0;", corner_resizer_style);
+	let corner_resizer_bottom_left_style = format!("{}bottom: 0; left: 0;", corner_resizer_style);
+	let corner_resizer_bottom_right_style = format!("{}bottom: 0; right: 0;", corner_resizer_style);
+
 	html! {
 		<div ref={div_node_ref} {onmousemove} {onmousedown} {onmouseup} id={id.clone()} {class} {onmouseenter} {onmouseleave} {style}>
-			<div onmousemove={on_top_left_resizer_move} onmousedown={on_resizer_click.clone()} onmouseup={on_resizer_unclick.clone()} onmouseenter={on_resizer_enter.clone()} onmouseleave={on_resizer_leave.clone()} class="image-resize-div corner-resize-div top-left" id={format!("{}-top-left-resizer", id.clone())} />
-			<div onmousemove={on_top_right_resizer_move} onmousedown={on_resizer_click.clone()} onmouseup={on_resizer_unclick.clone()} onmouseenter={on_resizer_enter.clone()} onmouseleave={on_resizer_leave.clone()} class="image-resize-div corner-resize-div top-right" id={format!("{}-top-right-resizer", id.clone())} />
-			<div onmousemove={on_bottom_left_resizer_move} onmousedown={on_resizer_click.clone()} onmouseup={on_resizer_unclick.clone()} onmouseenter={on_resizer_enter.clone()} onmouseleave={on_resizer_leave.clone()} class="image-resize-div corner-resize-div bottom-left" id={format!("{}-bottom-left-resizer", id.clone())} />
-			<div onmousemove={on_bottom_right_resizer_move} onmousedown={on_resizer_click.clone()} onmouseup={on_resizer_unclick.clone()} onmouseenter={on_resizer_enter.clone()} onmouseleave={on_resizer_leave.clone()} class="image-resize-div corner-resize-div bottom-right" id={format!("{}-bottom-right-resizer", id.clone())} />
-			<div onmousemove={on_top_resizer_move} onmousedown={on_resizer_click.clone()} onmouseup={on_resizer_unclick.clone()} onmouseenter={on_resizer_enter.clone()} onmouseleave={on_resizer_leave.clone()} class="image-resize-div edge-resize-div top" id={format!("{}-top-resizer", id.clone())} />
-			<div onmousemove={on_left_resizer_move} onmousedown={on_resizer_click.clone()} onmouseup={on_resizer_unclick.clone()} onmouseenter={on_resizer_enter.clone()} onmouseleave={on_resizer_leave.clone()} class="image-resize-div edge-resize-div left" id={format!("{}-bottom-resizer", id.clone())} />
-			<div onmousemove={on_right_resizer_move} onmousedown={on_resizer_click.clone()} onmouseup={on_resizer_unclick.clone()} onmouseenter={on_resizer_enter.clone()} onmouseleave={on_resizer_leave.clone()} class="image-resize-div edge-resize-div right" id={format!("{}-left-resizer", id.clone())} />
-			<div onmousemove={on_bottom_resizer_move} onmousedown={on_resizer_click.clone()} onmouseup={on_resizer_unclick.clone()} onmouseenter={on_resizer_enter.clone()} onmouseleave={on_resizer_leave.clone()} class="image-resize-div edge-resize-div bottom" id={format!("{}-right-resizer", id.clone())} />
+			<div style={corner_resizer_top_left_style} onmousemove={on_top_left_resizer_move} onmousedown={on_resizer_click.clone()} onmouseup={on_resizer_unclick.clone()} onmouseenter={on_resizer_enter.clone()} onmouseleave={on_resizer_leave.clone()} class="image-resize-div corner-resize-div top-left" id={format!("{}-top-left-resizer", id.clone())} />
+			<div style={corner_resizer_top_right_style} onmousemove={on_top_right_resizer_move} onmousedown={on_resizer_click.clone()} onmouseup={on_resizer_unclick.clone()} onmouseenter={on_resizer_enter.clone()} onmouseleave={on_resizer_leave.clone()} class="image-resize-div corner-resize-div top-right" id={format!("{}-top-right-resizer", id.clone())} />
+			<div style={corner_resizer_bottom_left_style} onmousemove={on_bottom_left_resizer_move} onmousedown={on_resizer_click.clone()} onmouseup={on_resizer_unclick.clone()} onmouseenter={on_resizer_enter.clone()} onmouseleave={on_resizer_leave.clone()} class="image-resize-div corner-resize-div bottom-left" id={format!("{}-bottom-left-resizer", id.clone())} />
+			<div style={corner_resizer_bottom_right_style} onmousemove={on_bottom_right_resizer_move} onmousedown={on_resizer_click.clone()} onmouseup={on_resizer_unclick.clone()} onmouseenter={on_resizer_enter.clone()} onmouseleave={on_resizer_leave.clone()} class="image-resize-div corner-resize-div bottom-right" id={format!("{}-bottom-right-resizer", id.clone())} />
+			<div style={edge_resizer_top_style} onmousemove={on_top_resizer_move} onmousedown={on_resizer_click.clone()} onmouseup={on_resizer_unclick.clone()} onmouseenter={on_resizer_enter.clone()} onmouseleave={on_resizer_leave.clone()} class="image-resize-div edge-resize-div top" id={format!("{}-top-resizer", id.clone())} />
+			<div style={edge_resizer_bottom_style} onmousemove={on_left_resizer_move} onmousedown={on_resizer_click.clone()} onmouseup={on_resizer_unclick.clone()} onmouseenter={on_resizer_enter.clone()} onmouseleave={on_resizer_leave.clone()} class="image-resize-div edge-resize-div left" id={format!("{}-bottom-resizer", id.clone())} />
+			<div style={edge_resizer_left_style} onmousemove={on_right_resizer_move} onmousedown={on_resizer_click.clone()} onmouseup={on_resizer_unclick.clone()} onmouseenter={on_resizer_enter.clone()} onmouseleave={on_resizer_leave.clone()} class="image-resize-div edge-resize-div right" id={format!("{}-left-resizer", id.clone())} />
+			<div style={edge_resizer_right_style} onmousemove={on_bottom_resizer_move} onmousedown={on_resizer_click.clone()} onmouseup={on_resizer_unclick.clone()} onmouseenter={on_resizer_enter.clone()} onmouseleave={on_resizer_leave.clone()} class="image-resize-div edge-resize-div bottom" id={format!("{}-right-resizer", id.clone())} />
 			{ props.children.clone() }
 		</div>
 	}
