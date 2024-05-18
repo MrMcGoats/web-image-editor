@@ -2,6 +2,7 @@ use derive_builder::Builder;
 
 #[derive(Clone, PartialEq, Builder)]
 pub struct TextDetails {
+	#[builder(default)]
 	pub text: String,
 	#[builder(default = "8")]
 	pub font_size: u16,
