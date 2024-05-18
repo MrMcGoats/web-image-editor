@@ -6,7 +6,7 @@ mod generic_movable_div;
 use yew::prelude::*;
 use text_details::TextDetails;
 use generic_movable_div::MouseMoveComponent;
-use web_sys::{HtmlInputElement,console};
+use web_sys::HtmlInputElement;
 
 #[derive(PartialEq, Properties)]
 pub struct MovableTextProps {

@@ -92,9 +92,6 @@ pub fn MouseMoveComponent(props: &MouseMoveProps) -> Html {
 			let x1 = x - div_node_ref.cast::<HtmlElement>().unwrap().offset_width() as i32 / 2;
 			let y1 = y - div_node_ref.cast::<HtmlElement>().unwrap().offset_height() as i32 / 2;
 
-			//let mut x1 = x - *clickx;
-			//let mut y1 = y - *clicky;
-
 			mousex.set(x1);
 			mousey.set(y1);
 		}
@@ -184,6 +181,9 @@ pub fn MouseMoveComponent(props: &MouseMoveProps) -> Html {
 				return;
 			}
 
+			// Resize the div up and to the left
+			// Maintain aspect ratio, and keep the cursor in the same spot relative to the div (move
+			// the div to accomodate the cursor)
 			let x = event.client_x();
 			let y = event.client_y();
 
@@ -198,6 +198,7 @@ pub fn MouseMoveComponent(props: &MouseMoveProps) -> Html {
 
 			mousex.set(x2);
 			mousey.set(y2);
+
 			width.set(new_width);
 			height.set(new_height);
 		}
