@@ -205,6 +205,7 @@ pub fn parse_query() -> Vec<PageItems> {
 	// width
 	// height
 	// movable
+	// editable (text only)
 	// font_size (text only)
 	// font_family (text only)
 	// font_color (text only)
@@ -220,6 +221,7 @@ pub fn parse_query() -> Vec<PageItems> {
 	let width_values = get_query_param("width");
 	let height_values = get_query_param("height");
 	let movable_values = get_query_param("movable");
+	let editable_values = get_query_param("editable");
 	let font_size_values = get_query_param("font_size");
 	let font_family_values = get_query_param("font_family");
 	let font_color_values = get_query_param("font_color");
@@ -276,6 +278,7 @@ pub fn parse_query() -> Vec<PageItems> {
 			let font_family: String;
 			let font_color: String;
 			let background_color: String;
+			let editable: bool;
 
 			let default_text = TextDetailsBuilder::default().build().unwrap(); // To use as default values
 
@@ -307,6 +310,12 @@ pub fn parse_query() -> Vec<PageItems> {
 				background_color = background_color_values[text_i].clone();
 			} else {
 				background_color = default_text.background_color;
+			}
+
+			if editable_values.len() > text_i {
+				editable = editable_values[text_i].parse::<bool>().unwrap_or(false);
+			} else {
+				editable = false;
 			}
 
 			text = Some(TextDetailsBuilder::default()
