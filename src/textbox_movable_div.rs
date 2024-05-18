@@ -22,6 +22,10 @@ pub struct MovableTextProps {
 	pub width: Option<i32>,
 	#[prop_or(None)]
 	pub height: Option<i32>,
+	#[prop_or(None)]
+	pub start_x: Option<i32>,
+	#[prop_or(None)]
+	pub start_y: Option<i32>,
 	pub text: TextDetails,
 }
 
@@ -30,6 +34,11 @@ pub fn MovableTextComponent(props: &MovableTextProps) -> Html {
 	let id = props.id.clone();
 	let class = props.class.clone();
 	let style = props.style.clone();
+	let width = props.width.clone();
+	let height = props.height.clone();
+	let start_x = props.start_x.clone();
+	let start_y = props.start_y.clone();
+
 	let text_details = use_state(|| props.text.clone());
 	let text = use_state(|| props.text.text.clone());
 
@@ -65,8 +74,8 @@ pub fn MovableTextComponent(props: &MovableTextProps) -> Html {
 	);
 
 	html! {
-		<MouseMoveComponent {id} {class} {style}>
-			if *selected {
+		<MouseMoveComponent {id} {class} {style} {width} {height} {start_x} {start_y}>
+			if *selected && (*text_details).editable {
 				<textarea value={ text.to_string() } style={format!("resize: none; overflow: hidden; width: 98%; height: 98%;{}", font_style)}
 				{oninput} {onmouseenter} {onmouseleave} />
 			} else {

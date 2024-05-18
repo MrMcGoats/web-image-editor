@@ -23,6 +23,10 @@ pub struct MovableImageProps {
 	pub width: Option<i32>,
 	#[prop_or(None)]
 	pub height: Option<i32>,
+	#[prop_or(None)]
+	pub start_x: Option<i32>,
+	#[prop_or(None)]
+	pub start_y: Option<i32>,
 	pub file: FileDetails,
 }
 
@@ -32,6 +36,8 @@ pub fn MovableImageComponent(props: &MovableImageProps) -> Html {
 	let class = props.class.clone();
 	let extra_style = props.style.clone();
 	let file = props.file.clone();
+	let start_x = props.start_x.clone();
+	let start_y = props.start_y.clone();
 
 	let first_load = use_state(|| true);
 
@@ -88,7 +94,7 @@ pub fn MovableImageComponent(props: &MovableImageProps) -> Html {
 	);
 
 	html! {
-		<MouseMoveComponent {id} {class} {style} {width} {height}>
+		<MouseMoveComponent {id} {class} {style} {width} {height} {start_x} {start_y}>
 			{ props.children.clone() }
 		</MouseMoveComponent>
 	}

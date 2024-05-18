@@ -5,6 +5,7 @@ use web_sys::{console, HtmlInputElement, FileList};
 use gloo::file::File;
 use gloo::file::callbacks::FileReader;
 use wasm_bindgen::prelude::*;
+use derive_builder::Builder;
 
 mod editable_canvas_div;
 mod image_movable_div;
@@ -25,18 +26,35 @@ extern "C" {
 	fn get_query_param(param: &str) -> Vec<String>;
 }
 
+#[derive(PartialEq, Clone, Builder)]
+pub struct PageItems {
+	#[builder(default)]
+	pub text: Option<TextDetails>,
+	#[builder(default)]
+	pub file: Option<FileDetails>,
+	#[builder(default = "0")]
+	pub x: i32,
+	#[builder(default = "0")]
+	pub y: i32,
+	#[builder(default)]
+	pub width: Option<i32>,
+	#[builder(default)]
+	pub height: Option<i32>,
+	#[builder(default = "true")]
+	pub movable: bool,
+}
 
 pub enum Msg {
 	Loaded(String, String, Vec<u8>, i32, i32),
 	Files(Vec<File>),
 	Text(TextDetails),
+	Item(PageItems),
 	FinishedLoading,
 }
 
 pub struct App {
 	readers: HashMap<String, FileReader>,
-	files: Vec<FileDetails>,
-	text: Vec<TextDetails>,
+	items: Vec<PageItems>,
 	first_load: bool,
 }
 
@@ -47,8 +65,7 @@ impl Component for App {
 	fn create(_ctx: &Context<Self>) -> Self {
 		Self {
 			readers: HashMap::default(),
-			files: Vec::default(),
-			text: Vec::default(),
+			items: Vec::default(),
 			first_load: true,
 		}
 	}
@@ -56,13 +73,15 @@ impl Component for App {
 	fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
 		match msg {
 			Msg::Loaded(file_name, file_type, data, width, height) => {
-				self.files.push(FileDetails {
+				let file_details = FileDetails {
 					name: file_name.clone(),
 					file_type,
 					data,
 					width,
 					height,
-				});
+				};
+
+				self.items.push(PageItemsBuilder::default().file(Some(file_details)).build().unwrap());
 				self.readers.remove(&file_name);
 				true
 			}
@@ -104,7 +123,11 @@ impl Component for App {
 				true
 			}
 			Msg::Text(text) => {
-				self.text.push(text);
+				self.items.push(PageItemsBuilder::default().text(Some(text)).build().unwrap());
+				true
+			}
+			Msg::Item(item) => {
+				self.items.push(item);
 				true
 			}
 			Msg::FinishedLoading => {
@@ -118,12 +141,7 @@ impl Component for App {
 		if self.first_load {
 			let items = parse_query();
 			for item in items {
-				if let Some(text) = item.text {
-					ctx.link().send_message(Msg::Text(text));
-				}
-				if let Some(file) = item.file {
-					ctx.link().send_message(Msg::Loaded(file.name, file.file_type, file.data, file.width, file.height));
-				}
+				ctx.link().send_message(Msg::Item(item));
 			}
 			ctx.link().send_message(Msg::FinishedLoading);
 		}
@@ -140,8 +158,7 @@ impl Component for App {
 					})}>{"Add Text"}</button>
 				<button onclick={|_| capture_div("#photo-canvas")}>{"Save"}</button>
 				<EditableCanvas id="photo-canvas">
-					{ for self.files.iter().rev().map(App::view_file) }
-					{ for self.text.iter().rev().map(App::view_text) }
+					{ for self.items.iter().rev().map(App::view_item) }
 				</EditableCanvas>
 			</div>
 		}
@@ -149,15 +166,25 @@ impl Component for App {
 }
 
 impl App {
-	fn view_file(file: &FileDetails) -> Html {
+	fn view_file(file: &FileDetails, width: Option<i32>, height: Option<i32>, start_x: i32, start_y: i32) -> Html {
 		html! {
-			<MovableImageComponent file={file.clone()} id={ format!("phote-move-{}", file.name.clone()) } class="image" width=250 />
+			<MovableImageComponent file={file.clone()} id={ format!("phote-move-{}", file.name.clone()) } class="image" {width} {height} {start_x} {start_y} />
 		}
 	}
 
-	fn view_text(text: &TextDetails) -> Html {
+	fn view_text(text: &TextDetails, width: Option<i32>, height: Option<i32>, start_x: i32, start_y: i32) -> Html {
 		html! {
-			<MovableTextComponent text={text.clone()} id="text-move" class="text" width=250 style="border: 2px solid black;" />
+			<MovableTextComponent text={text.clone()} id="text-move" class="text" {width} {height} {start_x} {start_y} />
+		}
+	}
+
+	fn view_item(item: &PageItems) -> Html {
+		if let Some(file) = &item.file {
+			Self::view_file(file, item.width, item.height, item.x, item.y)
+		} else if let Some(text) = &item.text {
+			Self::view_text(text, item.width, item.height, item.x, item.y)
+		} else {
+			html! {}
 		}
 	}
 
@@ -180,16 +207,6 @@ impl App {
 	}
 }
 
-#[derive(PartialEq, Clone)]
-pub struct PageItems {
-	pub text: Option<TextDetails>,
-	pub file: Option<FileDetails>,
-	pub x: i32,
-	pub y: i32,
-	pub width: i32,
-	pub height: i32,
-	pub movable: bool,
-}
 
 pub fn parse_query() -> Vec<PageItems> {
 	// This function will be used to parse the query string
@@ -211,6 +228,8 @@ pub fn parse_query() -> Vec<PageItems> {
 	// font_color (text only)
 	// background_color (text only)
 	// name (image only)
+	// real_width (image only)
+	// real_height (image only)
 	
 	// Each one will be an array. Corresponding values will be at the same index. If an attribute is
 	// only for text or image, adjust the length of the array accordingly (add empty strings for the other type)
@@ -238,8 +257,8 @@ pub fn parse_query() -> Vec<PageItems> {
 		
 		let x: i32;
 		let y: i32;
-		let width: i32;
-		let height: i32;
+		let width: Option<i32>;
+		let height: Option<i32>;
 		let movable: bool;
 
 		if x_values.len() > i {
@@ -255,15 +274,21 @@ pub fn parse_query() -> Vec<PageItems> {
 		}
 
 		if width_values.len() > i {
-			width = width_values[i].parse::<i32>().unwrap_or(100);
+			width = match width_values[i].parse::<i32>() {
+				Ok(val) => Some(val),
+				Err(_) => None,
+			};
 		} else {
-			width = 100;
+			width = None;
 		}
 
 		if height_values.len() > i {
-			height = height_values[i].parse::<i32>().unwrap_or(100);
+			height = match height_values[i].parse::<i32>() {
+				Ok(val) => Some(val),
+				Err(_) => None,
+			};
 		} else {
-			height = 100;
+			height = None;
 		}
 
 		if movable_values.len() > i {
@@ -324,6 +349,7 @@ pub fn parse_query() -> Vec<PageItems> {
 				.font_family(font_family)
 				.font_color(font_color)
 				.background_color(background_color)
+				.editable(editable)
 				.build().unwrap()
 			);
 
@@ -344,12 +370,24 @@ pub fn parse_query() -> Vec<PageItems> {
 				name = String::new();
 			}
 
+			// Get width and height of image
+			let resolution_res = imagesize::blob_size(&base64::decode(value.clone()).unwrap_or(Vec::new()));
+			let mut real_width = 100;
+			let mut real_height = 100;
+
+			if let Ok(resolution) = resolution_res {
+				real_width = resolution.width as i32;
+				real_height = resolution.height as i32;
+			} else {
+				console::error_1(&format!("Failed to get resolution of image: {}. Using default", name).into());
+			}
+
 			file = Some(FileDetails {
-				name: name,
+				name,
 				file_type: "image/png".to_string(),
 				data: base64::decode(value).unwrap_or(Vec::new()),
-				width,
-				height,
+				width: real_width,
+				height: real_height,
 			});
 			image_i += 1;
 		}

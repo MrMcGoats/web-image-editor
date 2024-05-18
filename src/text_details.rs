@@ -12,4 +12,6 @@ pub struct TextDetails {
 	pub font_color: String,
 	#[builder(default = "\"white\".to_string()")]
 	pub background_color: String,
+	#[builder(default = "true")]
+	pub editable: bool,
 }

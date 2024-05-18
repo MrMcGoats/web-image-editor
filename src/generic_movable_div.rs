@@ -19,6 +19,10 @@ pub struct MouseMoveProps {
 	pub width: Option<i32>,
 	#[prop_or(None)]
 	pub height: Option<i32>,
+	#[prop_or(None)]
+	pub start_x: Option<i32>,
+	#[prop_or(None)]
+	pub start_y: Option<i32>,
 }
 
 
@@ -57,8 +61,8 @@ pub fn MouseMoveComponent(props: &MouseMoveProps) -> Html {
 	}
 
 	// Used to position the div
-	let mousex = use_state(|| 0);
-	let mousey = use_state(|| 0);
+	let mousex = use_state(|| props.start_x.unwrap_or(0));
+	let mousey = use_state(|| props.start_y.unwrap_or(0));
 
 	// Saves where the mouse was clicked for resizing purposes
 	let clickx = use_state(|| 0);
