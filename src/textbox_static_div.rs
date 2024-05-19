@@ -81,7 +81,7 @@ pub fn static_text_component(props: &StaticTextProps) -> Html {
 				<textarea value={ text.to_string() } style={format!("resize: none; overflow: hidden; width: 98%; height: 98%;{}", font_style)}
 				{oninput} {onmouseenter} {onmouseleave} />
 			} else {
-				<div style={format!("width: 100%; height: 100%; background-color: {}", text_details.background_color)} {onmouseenter} {onmouseleave}>
+				<div style={format!("width: 100%; height: 100%; background-color: {}; overflow: hidden", text_details.background_color)} {onmouseenter} {onmouseleave}>
 					<span style={font_style}> { text.to_string() } </span>
 				</div>
 			}
