@@ -50,18 +50,28 @@ pub struct PageItems {
 	pub movable: bool,
 }
 
+#[derive(PartialEq, Clone, Builder)]
+pub struct CanvasSettings {
+	#[builder(default)]
+	pub width: Option<i32>,
+	#[builder(default)]
+	pub height: Option<i32>,
+}
+
 pub enum Msg {
 	Loaded(String, String, Vec<u8>, i32, i32),
 	Files(Vec<File>),
 	Text(TextDetails),
 	Item(PageItems),
 	FinishedLoading,
+	SetupCanvas(CanvasSettings),
 }
 
 pub struct App {
 	readers: HashMap<String, FileReader>,
 	items: Vec<PageItems>,
 	first_load: bool,
+	canvas_settings: CanvasSettings,
 }
 
 impl Component for App {
@@ -73,6 +83,7 @@ impl Component for App {
 			readers: HashMap::default(),
 			items: Vec::default(),
 			first_load: true,
+			canvas_settings: CanvasSettingsBuilder::default().build().unwrap(),
 		}
 	}
 
@@ -140,6 +151,10 @@ impl Component for App {
 				self.first_load = false;
 				true
 			}
+			Msg::SetupCanvas(settings) => {
+				self.canvas_settings = settings;
+				true
+			}
 		}
 	}
 
@@ -149,6 +164,9 @@ impl Component for App {
 			for item in items {
 				ctx.link().send_message(Msg::Item(item));
 			}
+
+			// Parse settings query
+			ctx.link().send_message(Msg::SetupCanvas(parse_settings_query()));
 			ctx.link().send_message(Msg::FinishedLoading);
 		}
 
@@ -163,7 +181,7 @@ impl Component for App {
 						Self::add_text(TextDetailsBuilder::default().text("Hello, World!".to_string()).font_size(16).build().unwrap())
 					})}>{"Add Text"}</button>
 				<button onclick={|_| capture_div("#photo-canvas")}>{"Save"}</button>
-				<EditableCanvas id="photo-canvas">
+				<EditableCanvas id="photo-canvas" width={self.canvas_settings.width} height={self.canvas_settings.height}>
 					{ for self.items.iter().rev().map(App::view_item) }
 				</EditableCanvas>
 			</div>
@@ -420,6 +438,25 @@ pub fn parse_query() -> Vec<PageItems> {
 
 
 	return items;
+}
+
+fn parse_settings_query() -> CanvasSettings {
+	let width = get_query_param("canvas_width");
+	let height = get_query_param("canvas_height");
+
+	let width = match width.get(0).unwrap_or(&String::new()).parse::<i32>() {
+		Ok(val) => Some(val),
+		Err(_) => None,
+	};
+	let height = match height.get(0).unwrap_or(&String::new()).parse::<i32>() {
+		Ok(val) => Some(val),
+		Err(_) => None,
+	};
+
+	CanvasSettings {
+		width,
+		height,
+	}
 }
 
 
