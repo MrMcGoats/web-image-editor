@@ -1,13 +1,9 @@
-#[path = "generic_movable_div.rs"]
-mod generic_movable_div;
-
 use yew::prelude::*;
 use crate::text_details::TextDetails;
-use generic_movable_div::MouseMoveComponent;
 use web_sys::HtmlInputElement;
 
 #[derive(PartialEq, Properties)]
-pub struct MovableTextProps {
+pub struct StaticTextProps {
 	#[prop_or_default]
 	pub id: AttrValue,
 	#[prop_or_default]
@@ -21,21 +17,21 @@ pub struct MovableTextProps {
 	#[prop_or(None)]
 	pub height: Option<i32>,
 	#[prop_or(None)]
-	pub start_x: Option<i32>,
+	pub x: Option<i32>,
 	#[prop_or(None)]
-	pub start_y: Option<i32>,
+	pub y: Option<i32>,
 	pub text: TextDetails,
 }
 
-#[function_component]
-pub fn MovableTextComponent(props: &MovableTextProps) -> Html {
+#[function_component(Text)]
+pub fn static_text_component(props: &StaticTextProps) -> Html {
 	let id = props.id.clone();
 	let class = props.class.clone();
-	let style = props.style.clone();
+	let extra_style = props.style.clone();
 	let width = props.width.clone();
 	let height = props.height.clone();
-	let start_x = props.start_x.clone();
-	let start_y = props.start_y.clone();
+	let left = props.x.clone();
+	let top = props.y.clone();
 
 	let text_details = use_state(|| props.text.clone());
 	let text = use_state(|| props.text.text.clone());
@@ -71,8 +67,16 @@ pub fn MovableTextComponent(props: &MovableTextProps) -> Html {
 		text_details.font_family,
 	);
 
+	let style = format!("position: absolute; left: {}px; top: {}px; width: {}px; height: {}px; {}",
+		left.unwrap_or(0),
+		top.unwrap_or(0),
+		width.unwrap_or(100),
+		height.unwrap_or(100),
+		extra_style,
+	);
+
 	html! {
-		<MouseMoveComponent {id} {class} {style} {width} {height} {start_x} {start_y}>
+		<div {id} {class} {style}>
 			if *selected && (*text_details).editable {
 				<textarea value={ text.to_string() } style={format!("resize: none; overflow: hidden; width: 98%; height: 98%;{}", font_style)}
 				{oninput} {onmouseenter} {onmouseleave} />
@@ -82,6 +86,6 @@ pub fn MovableTextComponent(props: &MovableTextProps) -> Html {
 				</div>
 			}
 			{ props.children.clone() }
-		</MouseMoveComponent>
+		</div>
 	}
 }

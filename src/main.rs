@@ -9,11 +9,17 @@ use derive_builder::Builder;
 
 mod editable_canvas_div;
 mod image_movable_div;
+mod image_static_div;
 mod textbox_movable_div;
+mod textbox_static_div;
+pub mod file_details;
+pub mod text_details;
 
 use editable_canvas_div::*;
 use image_movable_div::*;
+use image_static_div::*;
 use textbox_movable_div::*;
+use textbox_static_div::*;
 use file_details::*;
 use text_details::*;	
 
@@ -81,7 +87,7 @@ impl Component for App {
 					height,
 				};
 
-				self.items.push(PageItemsBuilder::default().file(Some(file_details)).build().unwrap());
+				self.items.push(PageItemsBuilder::default().file(Some(file_details)).width(Some(250)).build().unwrap());
 				self.readers.remove(&file_name);
 				true
 			}
@@ -166,23 +172,31 @@ impl Component for App {
 }
 
 impl App {
-	fn view_file(file: &FileDetails, width: Option<i32>, height: Option<i32>, start_x: i32, start_y: i32) -> Html {
+	fn view_file(file: &FileDetails, width: Option<i32>, height: Option<i32>, start_x: i32, start_y: i32, movable: bool) -> Html {
 		html! {
-			<MovableImageComponent file={file.clone()} id={ format!("phote-move-{}", file.name.clone()) } class="image" {width} {height} {start_x} {start_y} />
+			if movable {
+				<MovableImageComponent file={file.clone()} id={ format!("phote-move-{}", file.name.clone()) } class="image" {width} {height} {start_x} {start_y} />
+			} else {
+				<Image file={file.clone()} id={ format!("phote-static-{}", file.name.clone()) } class="image" {width} {height} x={start_x} y={start_y} />
+			}
 		}
 	}
 
-	fn view_text(text: &TextDetails, width: Option<i32>, height: Option<i32>, start_x: i32, start_y: i32) -> Html {
+	fn view_text(text: &TextDetails, width: Option<i32>, height: Option<i32>, start_x: i32, start_y: i32, movable: bool) -> Html {
 		html! {
-			<MovableTextComponent text={text.clone()} id="text-move" class="text" {width} {height} {start_x} {start_y} />
+			if movable {
+				<MovableTextComponent text={text.clone()} id="text-move" class="text" {width} {height} {start_x} {start_y} />
+			} else {
+				<Text text={text.clone()} id="text-static" class="text" {width} {height} x={start_x} y={start_y} />
+			}
 		}
 	}
 
 	fn view_item(item: &PageItems) -> Html {
 		if let Some(file) = &item.file {
-			Self::view_file(file, item.width, item.height, item.x, item.y)
+			Self::view_file(file, item.width, item.height, item.x, item.y, item.movable)
 		} else if let Some(text) = &item.text {
-			Self::view_text(text, item.width, item.height, item.x, item.y)
+			Self::view_text(text, item.width, item.height, item.x, item.y, item.movable)
 		} else {
 			html! {}
 		}

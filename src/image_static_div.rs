@@ -1,14 +1,10 @@
-#[path = "generic_movable_div.rs"]
-mod generic_movable_div;
-
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
 use yew::prelude::*;
 use crate::file_details::FileDetails;
-use generic_movable_div::MouseMoveComponent;
 
 #[derive(PartialEq, Properties)]
-pub struct MovableImageProps {
+pub struct StaticImageProps {
 	#[prop_or_default]
 	pub id: AttrValue,
 	#[prop_or_default]
@@ -22,20 +18,20 @@ pub struct MovableImageProps {
 	#[prop_or(None)]
 	pub height: Option<i32>,
 	#[prop_or(None)]
-	pub start_x: Option<i32>,
+	pub x: Option<i32>,
 	#[prop_or(None)]
-	pub start_y: Option<i32>,
+	pub y: Option<i32>,
 	pub file: FileDetails,
 }
 
-#[function_component]
-pub fn MovableImageComponent(props: &MovableImageProps) -> Html {
+#[function_component(Image)]
+pub fn image_component(props: &StaticImageProps) -> Html {
 	let id = props.id.clone();
 	let class = props.class.clone();
 	let extra_style = props.style.clone();
 	let file = props.file.clone();
-	let start_x = props.start_x.clone();
-	let start_y = props.start_y.clone();
+	let left = props.x.clone();
+	let top = props.y.clone();
 
 	let first_load = use_state(|| true);
 
@@ -82,18 +78,22 @@ pub fn MovableImageComponent(props: &MovableImageProps) -> Html {
 	}
 
 	let style = format!(
-		"background: url({}); background-position: center; background-size: 100% 100%; background-repeat: no-repeat; {}",
+		"background: url({}); background-position: center; background-size: 100% 100%; background-repeat: no-repeat; width: {}px; height: {}px; top: {}px; left: {}px; {}",
 		format!(
 			"data:{};base64,{}",
 			file.clone().file_type,
 			STANDARD.encode(&file.clone().data)
 		),
+		width.unwrap_or(250),
+		height.unwrap_or(250),
+		top.unwrap_or(0),
+		left.unwrap_or(0),
 		extra_style,
 	);
 
 	html! {
-		<MouseMoveComponent {id} {class} {style} {width} {height} {start_x} {start_y}>
+		<div {id} {class} {style}>
 			{ props.children.clone() }
-		</MouseMoveComponent>
+		</div>
 	}
 }
