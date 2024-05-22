@@ -176,8 +176,35 @@ impl Component for App {
 			ctx.link().send_message(Msg::FinishedLoading);
 		}
 
+		// Check if we have any new items to add to the page
+		match web_sys::window().unwrap().document().unwrap().get_element_by_id("extra-data-div") {
+			Some(extra_data_div) => {
+				match extra_data_div.get_attribute("data-extra-data") {
+					Some(data_str) => {
+						if data_str != "" {
+							// data_str is a comma separated list of items
+							let data_arr_str = format!("[{}]", data_str);
+							console::log_1(&data_arr_str.clone().into());
+							let data: Vec<PageItems> = serde_json::from_str(&data_arr_str).unwrap();
+							for item in data {
+								ctx.link().send_message(Msg::Item(item));
+							}
+							extra_data_div.set_attribute("data-extra-data", "").unwrap();
+						}
+					}
+					None => { console::log_1(&"No extra data".into()); }
+				}
+			}
+			None => { console::log_1(&"No extra data div".into()); }
+		}
+
 		html! {
 			<div>
+				<div id="extra-data-div" style="display: none;"><button id="canvas-update-trigger" onclick={ctx.link().callback(|_| {
+					// Trigger page redraw
+					Msg::FinishedLoading
+				})}>{"Update"}</button></div> // Used to store new items as
+																						 // JsValues
 				<input id="file-upload" type="file" accept="image/*" multiple={true}
 					onchange={ctx.link().callback(move |e: Event| {
 						let input: HtmlInputElement = e.target_unchecked_into();
@@ -324,19 +351,6 @@ pub fn js_build_file(name: String, file_type: String, data: Vec<u8>) -> Result<J
 	};
 	Ok(serde_wasm_bindgen::to_value(&file).map_err(|_| "Failed to serialize file")?)
 }
-
-// Function to add an item from javascript
-#[wasm_bindgen(js_name = add_item)]
-pub fn js_add_item(js_item: JsValue) -> Result<JsValue, JsValue> {
-	let item: PageItems = match serde_wasm_bindgen::from_value(js_item) {
-		Ok(val) => val,
-		Err(_) => return Err("Failed to parse item".into()),
-	};
-
-	return Err("Not implemented".into());
-	Ok(JsValue::NULL)
-}
-
 
 pub fn parse_query() -> Vec<PageItems> {
 	// This function will be used to parse the query string

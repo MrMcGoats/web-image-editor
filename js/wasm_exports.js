@@ -1,7 +1,3 @@
-function add_item(item) {
-  return window.wasmBindings.add_item(item);
-}
-
 function build_item(text, file, x, y, width, height, movable) {
   return window.wasmBindings.build_item(text, file, x, y, width, height, movable);
 }
