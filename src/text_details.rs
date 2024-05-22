@@ -1,6 +1,7 @@
 use derive_builder::Builder;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, PartialEq, Builder)]
+#[derive(Clone, PartialEq, Builder, Serialize, Deserialize, Debug)]
 pub struct TextDetails {
 	#[builder(default)]
 	pub text: String,

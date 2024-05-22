@@ -1,4 +1,6 @@
-#[derive(Clone, PartialEq)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
 pub struct FileDetails {
 	pub name: String,
 	pub file_type: String,
