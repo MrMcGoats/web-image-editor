@@ -1,0 +1,30 @@
+<html>
+    <head>
+        <title>Web Image Editor embed example</title>
+        <script type="text/javascript" src="https://html2canvas.hertzen.com/dist/html2canvas.min.js" async integrity="sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H" crossorigin="anonymous"></script>
+        <script type="text/javascript" src="../../js/capture.js"></script>
+        <script type="text/javascript" src="../../js/wasm_exports.js"></script>
+        <script type="text/javascript" src="../../js/query_string.js"></script>
+        <script type="text/javascript" src="../../js/add_items.js"></script>
+        <link href="../../styles/style.css" rel="stylesheet">
+        <style>
+        #save-button {
+            display: none;
+        }
+        </style>
+    </head>
+    <body>
+        <button id="second-capture" onclick='capture("#photo-canvas")'>Save</button>
+        <div id="canvas-root"></div>
+        <script type="module">
+            import init, { run_app } from '../../target/wasm-bindgen/debug/web-image-editor.js'
+
+            async function main() {
+                await init();
+                run_app();
+            }
+
+            main();
+        </script>
+    </body>
+</html>
