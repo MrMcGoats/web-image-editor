@@ -73,8 +73,20 @@ pub fn MouseMoveComponent(props: &MouseMoveProps) -> Html {
 	let on_edge = use_state(|| false);
 	let on_corner = use_state(|| false);
 
+	// This is used as basically a delete flag
+	let hidden = use_state(|| false);
+
 	let z_index = use_state(|| 1);
 	let old_z_index = use_state(|| 1);
+
+	let onkeydown = {
+		let hidden = hidden.clone();
+		move |event: KeyboardEvent| {
+			if !*hidden && event.key() == "Delete" {
+				hidden.set(true);
+			}
+		}
+	};
 
 	let onmousemove = {
 		let mousex = mousex.clone();
@@ -111,12 +123,13 @@ pub fn MouseMoveComponent(props: &MouseMoveProps) -> Html {
 
 		let z_index = z_index.clone();
 		let old_z_index = old_z_index.clone();
+		let hidden = hidden.clone();
 		move |event: MouseEvent| {
 			if event.button() != 0 {
 				return;
 			}
 
-			if *resizing || *on_edge || *dragging {
+			if *resizing || *on_edge || *dragging || *hidden {
 				return;
 			}
 
@@ -150,7 +163,12 @@ pub fn MouseMoveComponent(props: &MouseMoveProps) -> Html {
 		let resizing = resizing.clone();
 		let z_index = z_index.clone();
 		let old_z_index = old_z_index.clone();
+
+		let div_node_ref = div_node_ref.clone();
 		move |_: MouseEvent| {
+			// Unfocus element
+			div_node_ref.cast::<HtmlElement>().unwrap().blur().unwrap();
+
 			dragging.set(false);
 			resizing.set(false);
 
@@ -163,7 +181,12 @@ pub fn MouseMoveComponent(props: &MouseMoveProps) -> Html {
 		let resizing = resizing.clone();
 		let z_index = z_index.clone();
 		let old_z_index = old_z_index.clone();
+		
+		let div_node_ref = div_node_ref.clone();
 		move |_: MouseEvent| {
+			// Focus element
+			div_node_ref.cast::<HtmlElement>().unwrap().focus().unwrap();
+			
 			dragging.set(false);
 			resizing.set(false);
 
@@ -454,17 +477,20 @@ pub fn MouseMoveComponent(props: &MouseMoveProps) -> Html {
 		}
 	};
 
-	let style = format!(
-		"position: absolute; left: {}px; top: {}px; z-index: {}; width: {}px; max-width: {}px; height: {}px; max-height: {}px; {}",
-		*mousex,
-		*mousey,
-		*z_index,
-		*width,
-		*height,
-		*width,
-		*height,
-		extra_style,
-	);
+	let style = match *hidden {
+		true => "display: none;".to_string(),
+		false => format!(
+			"position: absolute; left: {}px; top: {}px; z-index: {}; width: {}px; max-width: {}px; height: {}px; max-height: {}px; {}",
+			*mousex,
+			*mousey,
+			*z_index,
+			*width,
+			*height,
+			*width,
+			*height,
+			extra_style,
+		),
+	};
 
 	// Styles to keep the resizers in the corners and edges
 	let resizer_size_percent = 7;
@@ -480,7 +506,7 @@ pub fn MouseMoveComponent(props: &MouseMoveProps) -> Html {
 	let corner_resizer_bottom_right_style = format!("{}bottom: 0; right: 0;", corner_resizer_style);
 
 	html! {
-		<div ref={div_node_ref} {onmousemove} {onmousedown} {onmouseup} id={id.clone()} {class} {onmouseenter} {onmouseleave} {style}>
+		<div ref={div_node_ref} {onkeydown} {onmousemove} {onmousedown} {onmouseup} id={id.clone()} {class} {onmouseenter} {onmouseleave} {style} tabindex="0">
 			<div style={corner_resizer_top_left_style} onmousemove={on_top_left_resizer_move} onmousedown={on_resizer_click.clone()} onmouseup={on_resizer_unclick.clone()} onmouseenter={on_resizer_corner_enter.clone()} onmouseleave={on_resizer_corner_leave.clone()} class="image-resize-div corner-resize-div top-left" id={format!("{}-top-left-resizer", id.clone())} />
 			<div style={corner_resizer_top_right_style} onmousemove={on_top_right_resizer_move} onmousedown={on_resizer_click.clone()} onmouseup={on_resizer_unclick.clone()} onmouseenter={on_resizer_corner_enter.clone()} onmouseleave={on_resizer_corner_leave.clone()} class="image-resize-div corner-resize-div top-right" id={format!("{}-top-right-resizer", id.clone())} />
 			<div style={corner_resizer_bottom_left_style} onmousemove={on_bottom_left_resizer_move} onmousedown={on_resizer_click.clone()} onmouseup={on_resizer_unclick.clone()} onmouseenter={on_resizer_corner_enter.clone()} onmouseleave={on_resizer_corner_leave.clone()} class="image-resize-div corner-resize-div bottom-left" id={format!("{}-bottom-left-resizer", id.clone())} />

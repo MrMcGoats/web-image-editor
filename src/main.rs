@@ -3,6 +3,7 @@ pub mod file_details;
 pub mod text_details;
 pub mod page_items;
 
+#[cfg(not(feature = "standalone"))]
 use wasm_bindgen::prelude::*;
 use web_sys::console;
 use app::App;
