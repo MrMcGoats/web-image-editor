@@ -1,9 +1,16 @@
 // Code for a generic div that can be moved around the screen by dragging it with the mouse
 // Can also be resized
 
-use web_sys::{MouseEvent, HtmlElement};
-use web_sys::console;
+use web_sys::{MouseEvent, HtmlElement, console};
 use yew::prelude::*;
+use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen]
+extern "C" {
+	#[wasm_bindgen(js_name = focusElement)]
+	fn focus_element(element: &HtmlElement); // Need this because we can't set no scroll option in
+														  // rust yet
+}
 
 #[derive(PartialEq, Properties)]
 pub struct MouseMoveProps {
@@ -185,7 +192,7 @@ pub fn MouseMoveComponent(props: &MouseMoveProps) -> Html {
 		let div_node_ref = div_node_ref.clone();
 		move |_: MouseEvent| {
 			// Focus element
-			div_node_ref.cast::<HtmlElement>().unwrap().focus().unwrap();
+			focus_element(&div_node_ref.cast::<HtmlElement>().unwrap());
 			
 			dragging.set(false);
 			resizing.set(false);
