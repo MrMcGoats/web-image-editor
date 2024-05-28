@@ -10,3 +10,19 @@
 .corner-resize-div {
 	/*background-color: red;*/
 }
+
+.top-right, .bottom-left {
+		cursor: nesw-resize;
+}
+
+.top-left, .bottom-right {
+	cursor: nwse-resize;
+}
+
+.left, .right {
+	cursor: ew-resize;
+}
+
+.top, .bottom {
+	cursor: ns-resize;
+}
