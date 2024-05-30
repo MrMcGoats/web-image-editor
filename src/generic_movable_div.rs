@@ -283,7 +283,6 @@ pub fn MouseMoveComponent(props: &MouseMoveProps) -> Html {
 	// This will be assigned to window event handler when a resizer is clicked, and removed when
 	// mouse is released
 	let on_resizer_mouse_move = {
-		let resizing = resizing.clone();
 		let drag_start_left = drag_start_left.clone();
 		let drag_start_top = drag_start_top.clone();
 		let mousex = mousex.clone();
@@ -297,10 +296,6 @@ pub fn MouseMoveComponent(props: &MouseMoveProps) -> Html {
 		let resize_direction = resize_direction.clone();
 
 		move |event: MouseEvent| {
-			/*if !*resizing {
-				return;
-			}*/
-
 			console::log_1(&format!("Mouse move: resizing:{}", *resize_direction).into());
 
 			let dx = event.client_x() - *resize_start_x;
@@ -330,6 +325,18 @@ pub fn MouseMoveComponent(props: &MouseMoveProps) -> Html {
 				new_width = *resize_start_width + dx;
 			}
 
+			// If width is less than 0, mirror the div over the x-axis and set width to positive
+			if new_width < 0 {
+				new_x = new_x + new_width;
+				new_width = -new_width;
+			}
+
+			// Same with height
+			if new_height < 0 {
+				new_y = new_y + new_height;
+				new_height = -new_height;
+			}
+
 			width.set(new_width);
 			height.set(new_height);
 			mousex.set(new_x);
@@ -352,8 +359,6 @@ pub fn MouseMoveComponent(props: &MouseMoveProps) -> Html {
 			let empty_closure = Closure::wrap(Box::new(|_| {}) as Box<dyn FnMut(MouseEvent)>);
 
 			// Remove all event listeners on the window
-			//window.remove_event_listener_with_callback("mousemove", &window.onmousemove().unwrap()).unwrap();
-			//window.remove_event_listener_with_callback("mouseup", &window.onmouseup().unwrap()).unwrap();
 			window.set_onmousemove(Some(empty_closure.as_ref().unchecked_ref()));
 			window.set_onmouseup(Some(empty_closure.as_ref().unchecked_ref()));
 
@@ -419,19 +424,13 @@ pub fn MouseMoveComponent(props: &MouseMoveProps) -> Html {
 
 			resize_direction.set(direction);
 
-
-
 			let on_resizer_move_closure = Closure::wrap(Box::new(on_resizer_mouse_move.clone()) as Box<dyn FnMut(MouseEvent)>);
 			let on_resizer_up_closure = Closure::wrap(Box::new(on_resizer_mouse_up.clone()) as Box<dyn FnMut(MouseEvent)>);
 
 			let window = window().unwrap();
 
-			// Assign the resize function to the window
-			//window().unwrap().add_event_listener_with_callback("mousemove", on_resizer_move_closure.as_ref().unchecked_ref()).unwrap();
+			// Assign the resize and unclick functions to the window
 			window.set_onmousemove(Some(on_resizer_move_closure.as_ref().unchecked_ref()));
-
-			// Assign the unclick function to the window
-			//window().unwrap().add_event_listener_with_callback("mouseup", on_resizer_up_closure.as_ref().unchecked_ref()).unwrap();
 			window.set_onmouseup(Some(on_resizer_up_closure.as_ref().unchecked_ref()));
 
 			// Store the closures so they don't get dropped
