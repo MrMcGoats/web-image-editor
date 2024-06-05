@@ -89,6 +89,7 @@ static DEFAULT_HEIGHT: i32 = 250;
 #[function_component]
 pub fn MouseMoveComponent(props: &MouseMoveProps) -> Html {
 	let div_node_ref = use_node_ref();
+	let trigger = use_force_update();
 
 	let id = props.id.clone();
 	let class = props.class.clone();
@@ -184,7 +185,6 @@ pub fn MouseMoveComponent(props: &MouseMoveProps) -> Html {
 
 			mousex.set(new_left);
 			mousey.set(new_top);
-
 		}
 	};
 
@@ -196,12 +196,17 @@ pub fn MouseMoveComponent(props: &MouseMoveProps) -> Html {
 		let clickx = clickx.clone();
 		let clicky = clicky.clone();
 
+		let mousex = mousex.clone();
+		let mousey = mousey.clone();
+
 		let drag_start_left = drag_start_left.clone();
 		let drag_start_top = drag_start_top.clone();
 
 		let z_index = z_index.clone();
 		let old_z_index = old_z_index.clone();
 		let hidden = hidden.clone();
+
+		let trigger = trigger.clone();
 
 		let div_node_ref = div_node_ref.clone();
 		move |event: MouseEvent| {
@@ -235,11 +240,21 @@ pub fn MouseMoveComponent(props: &MouseMoveProps) -> Html {
 		let resizing = resizing.clone();
 		let z_index = z_index.clone();
 		let old_z_index = old_z_index.clone();
+
+		let mousex = mousex.clone();
+		let mousey = mousey.clone();
+		let div_node_ref = div_node_ref.clone();
+		let trigger = trigger.clone();
 		move |_: MouseEvent| {
+			mousex.set(div_node_ref.cast::<HtmlElement>().unwrap().offset_left());
+			mousey.set(div_node_ref.cast::<HtmlElement>().unwrap().offset_top());
+
 			dragging.set(false);
 			resizing.set(false);
 
 			z_index.set(*old_z_index);
+
+			trigger.force_update();
 		}
 	};
 
@@ -279,72 +294,7 @@ pub fn MouseMoveComponent(props: &MouseMoveProps) -> Html {
 		}
 	};
 
-	// Generic resize function
-	// This will be assigned to window event handler when a resizer is clicked, and removed when
-	// mouse is released
-	let on_resizer_mouse_move = {
-		let drag_start_left = drag_start_left.clone();
-		let drag_start_top = drag_start_top.clone();
-		let mousex = mousex.clone();
-		let mousey = mousey.clone();
-		let width = width.clone();
-		let height = height.clone();
-		let resize_start_x = resize_start_x.clone();
-		let resize_start_y = resize_start_y.clone();
-		let resize_start_width = resize_start_width.clone();
-		let resize_start_height = resize_start_height.clone();
-		let resize_direction = resize_direction.clone();
-
-		move |event: MouseEvent| {
-			console::log_1(&format!("Mouse move: resizing:{}", *resize_direction).into());
-
-			let dx = event.client_x() - *resize_start_x;
-			let dy = event.client_y() - *resize_start_y;
-
-			let mut new_width = *resize_start_width;
-			let mut new_height = *resize_start_height;
-
-			let mut new_x = *drag_start_left;
-			let mut new_y = *drag_start_top;
-
-			if *resize_direction & ResizeDirection::Top != 0 {
-				new_height = *resize_start_height - dy;
-				new_y = *drag_start_top + dy;
-			}
-
-			if *resize_direction & ResizeDirection::Bottom != 0 {
-				new_height = *resize_start_height + dy;
-			}
-
-			if *resize_direction & ResizeDirection::Left != 0 {
-				new_width = *resize_start_width - dx;
-				new_x = *drag_start_left + dx;
-			}
-
-			if *resize_direction & ResizeDirection::Right != 0 {
-				new_width = *resize_start_width + dx;
-			}
-
-			// If width is less than 0, mirror the div over the x-axis and set width to positive
-			if new_width < 0 {
-				new_x = new_x + new_width;
-				new_width = -new_width;
-			}
-
-			// Same with height
-			if new_height < 0 {
-				new_y = new_y + new_height;
-				new_height = -new_height;
-			}
-
-			width.set(new_width);
-			height.set(new_height);
-			mousex.set(new_x);
-			mousey.set(new_y);
-			
-			console::log_1(&format!("dx: {}, dy: {}, new_width: {}, new_height: {}, new_x: {}, new_y: {}", dx, dy, new_width, new_height, new_x, new_y).into());
-		}
-	};
+	
 
 
 	// Unclick function to be attached to window event handler
@@ -379,6 +329,11 @@ pub fn MouseMoveComponent(props: &MouseMoveProps) -> Html {
 		let resizer_start_width = resize_start_width.clone();
 		let resizer_start_height = resize_start_height.clone();
 		let resize_direction = resize_direction.clone();
+		let width = width.clone();
+		let height = height.clone();
+
+		let mousex = mousex.clone();
+		let mousey = mousey.clone();
 
 		let id = id.clone();
 		let div_node_ref = div_node_ref.clone();
@@ -408,23 +363,41 @@ pub fn MouseMoveComponent(props: &MouseMoveProps) -> Html {
 			console::log_1(&format!("Resizer clicked: {}", resizer_id).into());
 			
 
-			let mut direction = ResizeDirection::TopLeft;
-			
-			match resizer_id {
-				"top-left-resizer" => direction = ResizeDirection::TopLeft,
-				"top-right-resizer" => direction = ResizeDirection::TopRight,
-				"bottom-left-resizer" => direction = ResizeDirection::BottomLeft,
-				"bottom-right-resizer" => direction = ResizeDirection::BottomRight,
-				"top-resizer" => direction = ResizeDirection::Top,
-				"bottom-resizer" => direction = ResizeDirection::Bottom,
-				"left-resizer" => direction = ResizeDirection::Left,
-				"right-resizer" => direction = ResizeDirection::Right,
-				_ => (),
-			}
+			let direction = match resizer_id {
+				"top-left-resizer" => ResizeDirection::TopLeft,
+				"top-right-resizer" => ResizeDirection::TopRight,
+				"bottom-left-resizer" => ResizeDirection::BottomLeft,
+				"bottom-right-resizer" => ResizeDirection::BottomRight,
+				"top-resizer" => ResizeDirection::Top,
+				"bottom-resizer" => ResizeDirection::Bottom,
+				"left-resizer" => ResizeDirection::Left,
+				"right-resizer" => ResizeDirection::Right,
+				_ => return,
+			};
 
 			resize_direction.set(direction);
 
-			let on_resizer_move_closure = Closure::wrap(Box::new(on_resizer_mouse_move.clone()) as Box<dyn FnMut(MouseEvent)>);
+			// Force a state update
+			//trigger.force_update();
+			
+			// Log all the state
+			console::log_1(&format!("drag_start_left: {}, drag_start_top: {}, mousex: {}, mousey: {}, width: {}, height: {}, resizer_start_x: {}, resizer_start_y: {}, resizer_start_width: {}, resizer_start_height: {}, resize_direction: {}", *drag_start_left, *drag_start_top, *mousex, *mousey, *width, *height, *resizer_start_x, *resizer_start_y, *resizer_start_width, *resizer_start_height, *resize_direction).into());
+
+
+			console::log_1(&"Updated state".into());
+			let on_resizer_move_closure = get_resize_move_function(
+				element.offset_left(),
+				element.offset_top(),
+				mousex.clone(),
+				mousey.clone(),
+				width.clone(),
+				height.clone(),
+				event.client_x(),
+				event.client_y(),
+				element.offset_width(),
+				element.offset_height(),
+				direction,
+			);
 			let on_resizer_up_closure = Closure::wrap(Box::new(on_resizer_mouse_up.clone()) as Box<dyn FnMut(MouseEvent)>);
 
 			let window = window().unwrap();
@@ -509,4 +482,77 @@ pub fn MouseMoveComponent(props: &MouseMoveProps) -> Html {
 			{ props.children.clone() }
 		</div>
 	}
+}
+
+fn get_resize_move_function(
+	drag_start_left: i32,
+	drag_start_top: i32,
+	mousex: UseStateHandle<i32>,
+	mousey: UseStateHandle<i32>,
+	width: UseStateHandle<i32>,
+	height: UseStateHandle<i32>,
+	resize_start_x: i32,
+	resize_start_y: i32,
+	resize_start_width: i32,
+	resize_start_height: i32,
+	resize_direction: ResizeDirection,
+) -> Closure<dyn FnMut(MouseEvent)> {
+	// Generic resize function
+	// This will be assigned to window event handler when a resizer is clicked, and removed when
+	// mouse is released
+	let on_resizer_mouse_move = {
+		move |event: MouseEvent| {
+			console::log_1(&format!("Mouse move: resizing:{}", resize_direction).into());
+
+			let dx = event.client_x() - resize_start_x;
+			let dy = event.client_y() - resize_start_y;
+
+			let mut new_width = resize_start_width;
+			let mut new_height = resize_start_height;
+
+			let mut new_x = drag_start_left;
+			let mut new_y = drag_start_top;
+
+			console::log_1(&format!("IN RESIZE drag_start_left: {}, drag_start_top: {}, mousex: {}, mousey: {}, width: {}, height: {}, resizer_start_x: {}, resizer_start_y: {}, resizer_start_width: {}, resizer_start_height: {}, resize_direction: {}", drag_start_left, drag_start_top, *mousex, *mousey, *width, *height, resize_start_x, resize_start_y, resize_start_width, resize_start_height, resize_direction).into());
+
+			if resize_direction & ResizeDirection::Top != 0 {
+				new_height = resize_start_height - dy;
+				new_y = drag_start_top + dy;
+			}
+
+			if resize_direction & ResizeDirection::Bottom != 0 {
+				new_height = resize_start_height + dy;
+			}
+
+			if resize_direction & ResizeDirection::Left != 0 {
+				new_width = resize_start_width - dx;
+				new_x = drag_start_left + dx;
+			}
+
+			if resize_direction & ResizeDirection::Right != 0 {
+				new_width = resize_start_width + dx;
+			}
+
+			// If width is less than 0, mirror the div over the x-axis and set width to positive
+			if new_width < 0 {
+				new_x = new_x + new_width;
+				new_width = -new_width;
+			}
+
+			// Same with height
+			if new_height < 0 {
+				new_y = new_y + new_height;
+				new_height = -new_height;
+			}
+
+			width.set(new_width);
+			height.set(new_height);
+			mousex.set(new_x);
+			mousey.set(new_y);
+			
+			console::log_1(&format!("dx: {}, dy: {}, new_width: {}, new_height: {}, new_x: {}, new_y: {}", dx, dy, new_width, new_height, new_x, new_y).into());
+		}
+	};
+
+	Closure::wrap(Box::new(on_resizer_mouse_move.clone()) as Box<dyn FnMut(MouseEvent)>)
 }
